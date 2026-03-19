@@ -1,0 +1,27 @@
+{
+  "name": "SparkNorge",
+  "short_name": "SparkNorge",
+  "description": "Live sparkesykler fra Voi, Bolt, Ryde og Dott i norske byer",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#080c18",
+  "theme_color": "#080c18",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["travel", "navigation", "utilities"],
+  "lang": "no",
+  "dir": "ltr"
+}
