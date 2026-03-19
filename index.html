@@ -70,6 +70,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
   top:calc(52px + env(safe-area-inset-top));
   left:0;right:0;
   bottom:calc(56px + env(safe-area-inset-bottom));
+  background:var(--bg);
+  z-index:100;
 }
 .page.on{display:block}
 
@@ -754,7 +756,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
 
 <!-- ── PRISER PAGE ── -->
 <div id="pgPris" class="page">
-  <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;height:100%;padding:16px 14px 24px">
+  <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;height:100%;padding:16px 14px 24px;background:var(--bg)">
   <div class="ph"><h1>💸 Prisguide</h1><p>Finn billigste leverandør for din kjørestil</p></div>
   <div class="calcbox">
     <h2>🧮 Hva koster turen din?</h2>
