@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#080c18">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -10,351 +10,375 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>SparkNorge</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
+/* ── RESET & VARIABLES ── */
 :root {
-  --bg:#080c18;
-  --safe-bottom:env(safe-area-inset-bottom,0px);
-  --safe-top:env(safe-area-inset-top,0px); --bg2:#0d1224; --surf:#121930; --surf2:#1c2440;
+  --bg:#080c18; --bg2:#0d1224; --surf:#121930; --surf2:#1c2440;
   --border:rgba(255,255,255,0.08); --text:#e8edf8; --dim:#5a6a8a;
   --voi:#e91e8c; --bolt:#34d16b; --ryde:#ff5722; --dott:#6c5ce7;
   --accent:#00e5a0; --red:#ff4d4d; --yellow:#ffb800;
 }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
 
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:3000;padding-top:var(--safe-top,0px);
-  display:flex;align-items:center;gap:8px;padding:0 14px;
-  background:rgba(8,12,24,.96);backdrop-filter:blur(24px);
-  border-bottom:1px solid var(--border)}
-.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;
-  display:flex;align-items:center;gap:6px;margin-right:4px}
-.logo em{color:var(--accent);font-style:normal}
-.nav-right{margin-left:auto;display:flex;align-items:center;gap:7px}
-.city-sel{background:var(--surf2);border:1px solid var(--border);color:var(--text);
-  font-family:'DM Sans',sans-serif;font-size:12px;padding:5px 8px;
-  border-radius:9px;cursor:pointer;outline:none}
-.city-sel option{background:var(--bg2)}
-.nav-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);
-  background:var(--surf2);color:var(--dim);display:flex;align-items:center;
-  justify-content:center;cursor:pointer;transition:all .2s;font-size:16px;flex-shrink:0;
-  font-family:inherit}
-.nav-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.08)}
-.nav-btn.on{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.1)}
-.nav-btn.spin{animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* LAYOUT */
-.app{position:fixed;top:56px;left:0;right:0;bottom:0;display:flex}
-#map{flex:1;z-index:1}
-.leaflet-tile-pane{filter:brightness(.52) saturate(.3) hue-rotate(200deg)}
-.leaflet-control-attribution{font-size:9px!important;opacity:.25}
-
-/* SIDEBAR */
-.sb{width:320px;flex-shrink:0;display:flex;flex-direction:column;
-  background:var(--bg2);border-right:1px solid var(--border);z-index:2;overflow:hidden}
-.sb-top{padding:11px;border-bottom:1px solid var(--border);flex-shrink:0}
-.search-wrap{display:flex;align-items:center;gap:7px;background:var(--surf2);
-  border:1px solid var(--border);border-radius:11px;padding:8px 11px;
-  margin-bottom:9px;transition:border .2s}
-.search-wrap:focus-within{border-color:rgba(0,229,160,.4)}
-.search-wrap input{background:none;border:none;outline:none;color:var(--text);
-  font-family:'DM Sans',sans-serif;font-size:13px;width:100%}
-.search-wrap input::placeholder{color:var(--dim)}
-.filters{display:flex;gap:5px;flex-wrap:wrap}
-.fb{display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:50px;
-  font-size:11px;font-weight:600;cursor:pointer;border:1px solid;transition:all .2s;
-  font-family:'DM Sans',sans-serif;user-select:none}
-.fb.off{opacity:.2}
-
-/* SORT */
-.sort-bar{display:flex;align-items:center;padding:7px 11px;
-  border-bottom:1px solid var(--border);gap:5px;flex-shrink:0}
-.sort-lbl{font-size:11px;color:var(--dim)}
-.sort-btn{padding:4px 9px;border-radius:50px;font-size:11px;font-weight:600;
-  cursor:pointer;border:1px solid var(--border);background:transparent;
-  color:var(--dim);font-family:'DM Sans',sans-serif;transition:all .2s}
-.sort-btn.on{background:var(--surf2);border-color:rgba(0,229,160,.3);color:var(--accent)}
-
-/* LIST */
-.sb-list{flex:1;overflow-y:auto;padding:7px}
-.sb-list::-webkit-scrollbar{width:3px}
-.sb-list::-webkit-scrollbar-thumb{background:var(--surf2);border-radius:6px}
-
-/* CARDS */
-.card{display:flex;align-items:center;gap:9px;background:var(--surf);
-  border:1px solid var(--border);border-radius:13px;padding:10px 11px;
-  margin-bottom:6px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
-.card:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.12)}
-.card:active{transform:scale(.98)}
-.cbar{position:absolute;left:0;top:0;bottom:0;width:4px}
-.cico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;
-  justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;flex-shrink:0}
-.cbody{flex:1;min-width:0}
-.cname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
-.cmeta{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--dim);flex-wrap:wrap}
-.cbatt{display:flex;align-items:center;gap:3px;font-weight:600}
-.bb{width:26px;height:8px;border-radius:3px;background:var(--surf2);overflow:hidden;border:1px solid rgba(255,255,255,.07)}
-.bf{height:100%;border-radius:2px}
-.cdist{color:var(--accent);font-weight:600}
-.lei{padding:5px 11px;border-radius:8px;border:none;font-size:11px;font-weight:700;
-  cursor:pointer;flex-shrink:0;font-family:'DM Sans',sans-serif;transition:all .2s}
-.lei:hover{opacity:.82}
-
-/* SHIMMER / EMPTY */
-.shim{height:60px;border-radius:13px;margin-bottom:6px;
-  background:linear-gradient(90deg,var(--surf) 25%,var(--surf2) 50%,var(--surf) 75%);
-  background-size:200% 100%;animation:shim 1.2s infinite}
-@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.empty{text-align:center;padding:36px 14px;color:var(--dim);font-size:13px;line-height:1.7}
-.empty-ico{font-size:30px;margin-bottom:9px}
-
-/* FOOTER */
-.sb-foot{padding:8px 13px;border-top:1px solid var(--border);
-  display:flex;justify-content:space-between;align-items:center;
-  font-size:11px;color:var(--dim);flex-shrink:0}
-.ldot{display:inline-block;width:7px;height:7px;border-radius:50%;
-  background:var(--red);margin-right:5px;vertical-align:middle}
-.ldot.on{background:var(--accent);animation:pulse 2s ease infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-
-/* GPS */
-.gps-marker{width:18px;height:18px;border-radius:50%;background:#4a90f0;
-  border:3px solid white;box-shadow:0 0 0 4px rgba(74,144,240,.25),0 2px 8px rgba(0,0,0,.4)}
-.gps-pulse{width:50px;height:50px;border-radius:50%;background:rgba(74,144,240,.15);
-  border:1px solid rgba(74,144,240,.3);animation:gpspulse 2s ease infinite}
-@keyframes gpspulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.4);opacity:0}}
-
-/* MAP PINS */
-.pin{display:flex;flex-direction:column;align-items:center;pointer-events:none}
-.pbub{padding:4px 9px;border-radius:50px;font-size:11px;font-weight:700;
-  box-shadow:0 3px 14px rgba(0,0,0,.5);font-family:'DM Sans',sans-serif;white-space:nowrap}
-.ptail{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid}
-
-/* POPUP */
-.leaflet-popup-content-wrapper{background:var(--bg2)!important;color:var(--text)!important;
-  border:1px solid var(--border)!important;border-radius:16px!important;
-  box-shadow:0 12px 40px rgba(0,0,0,.7)!important;padding:0!important}
-.leaflet-popup-content{margin:15px 17px!important;font-family:'DM Sans',sans-serif!important}
-.leaflet-popup-tip{background:var(--bg2)!important}
-.leaflet-popup-close-button{color:var(--dim)!important;top:9px!important;right:11px!important}
-.pop-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.pop-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;
-  justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;flex-shrink:0}
-.pop-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px}
-.pop-sub{font-size:12px;color:var(--dim);margin-top:1px}
-.pop-stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:11px}
-.pop-stat{background:var(--surf);border-radius:10px;padding:10px;text-align:center}
-.pop-stat-n{font-family:'Syne',sans-serif;font-weight:700;font-size:18px}
-.pop-stat-l{font-size:10px;color:var(--dim);margin-top:2px}
-.pop-btn{width:100%;padding:10px;border-radius:11px;border:none;
-  font-weight:700;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
-.pop-btn:hover{opacity:.85}
-
-/* STRIP */
-#strip{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
-  display:flex;gap:6px;z-index:500;pointer-events:none;flex-wrap:wrap;justify-content:center;padding:0 8px}
-.chip{background:rgba(8,12,24,.92);backdrop-filter:blur(16px);border:1px solid var(--border);
-  border-radius:50px;padding:5px 13px;font-size:11px;display:flex;align-items:center;gap:5px;white-space:nowrap}
-.chip b{font-weight:700}
-.cdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-
-/* LOC BANNER */
-.loc-banner{display:none;align-items:center;gap:7px;padding:7px 11px;
-  background:rgba(0,229,160,.07);border-bottom:1px solid rgba(0,229,160,.14);
-  font-size:12px;color:var(--accent);flex-shrink:0}
-.loc-banner.on{display:flex}
-
-/* SETUP */
-#setup{position:fixed;inset:0;z-index:5000;background:rgba(5,8,18,.96);
-  display:flex;align-items:center;justify-content:center;padding:16px}
-#setup.hide{display:none}
-.setup-box{background:var(--bg2);border:1px solid var(--border);border-radius:22px;
-  width:100%;max-width:480px;padding:26px;max-height:92vh;overflow-y:auto}
-.setup-box::-webkit-scrollbar{width:3px}
-.setup-box::-webkit-scrollbar-thumb{background:var(--surf2);border-radius:6px}
-.setup-title{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:6px}
-.setup-sub{font-size:13px;color:var(--dim);line-height:1.6;margin-bottom:18px}
-.prov-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
-.prov-pill{padding:4px 11px;border-radius:50px;font-size:12px;font-weight:600}
-.step{background:var(--surf);border:1px solid var(--border);border-radius:15px;padding:15px;margin-bottom:11px}
-.step-head{display:flex;align-items:center;gap:9px;margin-bottom:7px}
-.step-n{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#040a14;
-  font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.step-title{font-weight:600;font-size:14px}
-.inp-row{display:flex;gap:7px;margin-top:9px}
-.proxy-inp{flex:1;background:var(--surf2);border:1px solid var(--border);color:var(--text);
-  font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:10px;
-  outline:none;transition:border .2s}
-.proxy-inp:focus{border-color:var(--accent)}
-.proxy-inp::placeholder{color:var(--dim)}
-.btn-p{padding:9px 16px;border-radius:10px;background:var(--accent);color:#040a14;border:none;
-  font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:opacity .2s}
-.btn-p:hover{opacity:.86}
-.btn-p:disabled{opacity:.4;cursor:not-allowed}
-.btn-g{padding:9px 16px;border-radius:10px;background:var(--surf2);color:var(--dim);
-  border:1px solid var(--border);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .2s}
-.btn-g:hover{color:var(--text)}
-.test-res{font-size:12px;padding:8px 11px;border-radius:9px;margin-top:7px;display:none;line-height:1.5}
-.test-res.ok{display:block;background:rgba(0,229,160,.1);color:var(--accent)}
-.test-res.err{display:block;background:rgba(255,77,77,.1);color:var(--red)}
-.divider{height:1px;background:var(--border);margin:14px 0}
-.setup-actions{display:flex;gap:8px;justify-content:flex-end}
-
-/* ═══════════════════════════════════
-   QR SCANNER MODAL
-═══════════════════════════════════ */
-#qrModal{position:fixed;inset:0;z-index:6000;background:rgba(4,6,14,.98);
-  display:none;flex-direction:column;align-items:center;justify-content:center;
-  padding:20px;gap:18px}
-#qrModal.open{display:flex}
-.qr-title{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;text-align:center}
-.qr-sub{font-size:13px;color:var(--dim);text-align:center;line-height:1.6;max-width:280px}
-
-/* Camera viewport */
-.qr-viewport{position:relative;width:280px;height:280px;border-radius:22px;overflow:hidden;background:#000;flex-shrink:0}
-#qrVideo{width:100%;height:100%;object-fit:cover;display:block}
-#qrCanvas{display:none}
-/* Corner frame */
-.qr-corner{position:absolute;width:30px;height:30px;border-color:var(--accent);border-style:solid}
-.qr-c-tl{top:14px;left:14px;border-width:3px 0 0 3px;border-radius:6px 0 0 0}
-.qr-c-tr{top:14px;right:14px;border-width:3px 3px 0 0;border-radius:0 6px 0 0}
-.qr-c-bl{bottom:14px;left:14px;border-width:0 0 3px 3px;border-radius:0 0 0 6px}
-.qr-c-br{bottom:14px;right:14px;border-width:0 3px 3px 0;border-radius:0 0 6px 0}
-/* Scan line */
-.qr-scan{position:absolute;left:14px;right:14px;height:2px;
-  background:linear-gradient(90deg,transparent,var(--accent),transparent);
-  box-shadow:0 0 10px var(--accent);animation:scanline 2s ease-in-out infinite}
-@keyframes scanline{0%,100%{top:14px;opacity:0}8%{opacity:1}92%{opacity:1}50%{top:calc(100% - 14px)}}
-.qr-scan.found{animation:none;background:var(--accent);opacity:1}
-
-.qr-status{font-size:13px;color:var(--dim);text-align:center;min-height:18px;transition:color .3s}
-.qr-status.scanning{color:var(--dim)}
-.qr-status.found{color:var(--accent);font-weight:600}
-.qr-status.err{color:var(--red)}
-
-/* Result card */
-.qr-result{width:100%;max-width:320px;background:var(--bg2);
-  border:1px solid var(--border);border-radius:20px;padding:18px;
-  display:none;animation:fadeup .3s ease}
-.qr-result.show{display:block}
-@keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.qr-res-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.qr-res-ico{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;
-  justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;flex-shrink:0}
-.qr-res-name{font-family:'Syne',sans-serif;font-weight:700;font-size:18px}
-.qr-res-id{font-size:11px;color:var(--dim);margin-top:2px;font-family:monospace}
-.qr-actions{display:flex;flex-direction:column;gap:8px}
-.qr-action-main{width:100%;padding:13px;border-radius:12px;border:none;
-  font-weight:700;font-size:15px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
-.qr-action-main:hover{opacity:.85}
-.qr-action-sec{width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);
-  background:var(--surf2);color:var(--text);font-size:13px;cursor:pointer;
-  font-family:'DM Sans',sans-serif;transition:all .2s}
-.qr-action-sec:hover{border-color:var(--dim)}
-.qr-raw{font-size:10px;color:var(--dim);word-break:break-all;margin-top:8px;
-  padding:8px;background:var(--surf);border-radius:8px;font-family:monospace;display:none}
-.qr-raw.show{display:block}
-
-.qr-footer{display:flex;gap:10px}
-.qr-close-btn{flex:1;padding:11px;border-radius:50px;border:1px solid var(--border);
-  background:var(--surf2);color:var(--text);font-family:'DM Sans',sans-serif;
-  font-size:14px;cursor:pointer;transition:all .2s;text-align:center}
-.qr-close-btn:hover{border-color:var(--dim)}
-.qr-scan-again{flex:1;padding:11px;border-radius:50px;background:var(--surf2);
-  border:1px solid rgba(0,229,160,.3);color:var(--accent);font-family:'DM Sans',sans-serif;
-  font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:none}
-.qr-scan-again.show{display:block}
-
-/* MOBILE */
-@media(max-width:700px){
-  .sb{position:absolute;bottom:0;left:0;right:0;width:100%;height:55%;
-    border-right:none;border-top:1px solid var(--border);border-radius:20px 20px 0 0;
-    z-index:200;transition:transform .3s}
-  .sb.collapsed{transform:translateY(calc(100% - 50px))}
-  .sb-handle{display:flex;justify-content:center;padding:7px;cursor:pointer;flex-shrink:0}
-  .sb-handle-bar{width:34px;height:4px;border-radius:50px;background:var(--surf2)}
-  #strip{bottom:calc(55% + 10px)}
-  .qr-viewport{width:260px;height:260px}
+/* ── TOP NAV ── */
+#topNav {
+  position:fixed; top:0; left:0; right:0; z-index:1000;
+  height:calc(52px + env(safe-area-inset-top));
+  padding-top:env(safe-area-inset-top);
+  background:rgba(8,12,24,.96); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:flex-end; padding-bottom:0;
 }
-@media(min-width:701px){.sb-handle{display:none}}
+#topNav .inner {
+  width:100%; height:52px; display:flex; align-items:center; padding:0 14px; gap:10px;
+}
+.logo { font-weight:800; font-size:17px; display:flex; align-items:center; gap:6px; }
+.logo em { color:var(--accent); font-style:normal; }
+.city-sel {
+  margin-left:auto; background:var(--surf2); border:1px solid var(--border); color:var(--text);
+  font-size:12px; padding:6px 8px; border-radius:9px; cursor:pointer; outline:none;
+  -webkit-appearance:none; max-width:130px;
+}
+.city-sel option { background:var(--bg2); }
+
+/* ── BOTTOM TAB BAR ── */
+#tabBar {
+  position:fixed; bottom:0; left:0; right:0; z-index:1000;
+  height:calc(56px + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);
+  background:rgba(8,12,24,.97); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex; align-items:flex-start;
+}
+.tab {
+  flex:1; height:56px; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; cursor:pointer; gap:3px; color:var(--dim);
+  transition:color .2s; -webkit-user-select:none; user-select:none;
+}
+.tab:active { transform:scale(.88); }
+.tab.on { color:var(--accent); }
+.tab-ico { font-size:22px; line-height:1; }
+.tab-lbl { font-size:10px; font-weight:600; }
+
+/* ── PAGE WRAPPER ── */
+.page {
+  display:none;
+  position:fixed;
+  top:calc(52px + env(safe-area-inset-top));
+  left:0; right:0;
+  bottom:calc(56px + env(safe-area-inset-bottom));
+}
+.page.on { display:block; }
+
+/* ── MAP PAGE ── */
+#pgMap { overflow:hidden; }
+#map { position:absolute; inset:0; z-index:1; }
+.leaflet-tile-pane { filter:brightness(.52) saturate(.3) hue-rotate(200deg); }
+.leaflet-control-attribution { font-size:9px!important; opacity:.2; }
+.leaflet-control-zoom { margin-bottom:10px!important; margin-right:10px!important; }
+
+/* Floating buttons on map */
+.fab {
+  position:absolute; z-index:500;
+  width:50px; height:50px; border-radius:14px;
+  background:var(--bg2); border:1px solid var(--border);
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; cursor:pointer; transition:all .2s;
+  -webkit-user-select:none; user-select:none;
+}
+.fab:active { transform:scale(.88); }
+.fab.on { border-color:var(--accent); background:rgba(0,229,160,.1); }
+#fabGps { left:14px; bottom:80px; }
+#fabQr  { left:14px; bottom:22px; }
+.fab.spinning { animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Stats strip on map */
+#strip {
+  position:absolute; bottom:22px; left:72px; right:50px; z-index:400;
+  display:flex; gap:5px; overflow:hidden; pointer-events:none;
+}
+.chip {
+  background:rgba(8,12,24,.9); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--border); border-radius:50px;
+  padding:5px 11px; font-size:11px; display:flex; align-items:center; gap:5px;
+  white-space:nowrap; flex-shrink:0;
+}
+.chip b { font-weight:700; }
+.cdot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+/* GPS marker */
+.gm { width:18px; height:18px; border-radius:50%; background:#4a90f0;
+  border:3px solid white; box-shadow:0 0 0 4px rgba(74,144,240,.25),0 2px 8px rgba(0,0,0,.4); }
+.gp { width:50px; height:50px; border-radius:50%; background:rgba(74,144,240,.15);
+  border:1px solid rgba(74,144,240,.3); animation:gpa 2s ease infinite; }
+@keyframes gpa { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.4);opacity:0} }
+
+/* Map pins */
+.pin { display:flex; flex-direction:column; align-items:center; pointer-events:none; }
+.pbub { padding:4px 9px; border-radius:50px; font-size:11px; font-weight:700;
+  box-shadow:0 3px 14px rgba(0,0,0,.5); white-space:nowrap; }
+.ptail { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid; }
+
+/* Bottom sheet */
+.sheet {
+  position:absolute; bottom:0; left:0; right:0;
+  height:68%; background:var(--bg2);
+  border-top:1px solid var(--border); border-radius:20px 20px 0 0;
+  z-index:600; display:flex; flex-direction:column;
+  transition:transform .3s cubic-bezier(.32,.72,0,1);
+}
+.sheet.peek { transform:translateY(calc(100% - 68px)); }
+.sheet-handle { display:flex; flex-direction:column; align-items:center; padding:9px 0 5px;
+  cursor:pointer; flex-shrink:0; gap:3px; -webkit-user-select:none; }
+.sheet-bar { width:36px; height:4px; border-radius:50px; background:var(--surf2); }
+.sheet-count { font-size:12px; color:var(--dim); font-weight:500; }
+.sheet-filters { padding:0 12px 9px; display:flex; gap:5px; flex-wrap:wrap; flex-shrink:0; }
+.fb { display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:50px;
+  font-size:12px; font-weight:600; cursor:pointer; border:1px solid; transition:all .2s;
+  -webkit-user-select:none; user-select:none; }
+.fb.off { opacity:.2; }
+.sheet-list { flex:1; overflow-y:auto; padding:0 10px 10px;
+  -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+.sheet-list::-webkit-scrollbar { display:none; }
+
+/* Cards */
+.card {
+  display:flex; align-items:center; gap:9px;
+  background:var(--surf); border:1px solid var(--border);
+  border-radius:14px; padding:11px 12px; margin-bottom:7px;
+  cursor:pointer; position:relative; overflow:hidden;
+  -webkit-user-select:none; user-select:none;
+}
+.card:active { transform:scale(.97); background:var(--surf2); }
+.cbar { position:absolute; left:0; top:0; bottom:0; width:4px; }
+.cico { width:38px; height:38px; border-radius:11px; display:flex; align-items:center;
+  justify-content:center; font-weight:800; font-size:13px; flex-shrink:0; }
+.cbody { flex:1; min-width:0; }
+.cn { font-size:13px; font-weight:600; margin-bottom:3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cm { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--dim); flex-wrap:wrap; }
+.cb { display:flex; align-items:center; gap:3px; font-weight:600; }
+.bb { width:26px; height:8px; border-radius:3px; background:var(--surf2);
+  overflow:hidden; border:1px solid rgba(255,255,255,.07); }
+.bf { height:100%; border-radius:2px; }
+.lei { padding:6px 13px; border-radius:9px; border:none; font-size:12px; font-weight:700;
+  cursor:pointer; flex-shrink:0; -webkit-user-select:none; }
+.lei:active { opacity:.7; transform:scale(.93); }
+.shim { height:62px; border-radius:14px; margin-bottom:7px;
+  background:linear-gradient(90deg,var(--surf) 25%,var(--surf2) 50%,var(--surf) 75%);
+  background-size:200% 100%; animation:shim 1.2s infinite; }
+@keyframes shim { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.empty { text-align:center; padding:30px 14px; color:var(--dim); font-size:13px; line-height:1.8; }
+
+/* Leaflet popup */
+.leaflet-popup-content-wrapper { background:var(--bg2)!important; color:var(--text)!important;
+  border:1px solid var(--border)!important; border-radius:16px!important;
+  box-shadow:0 12px 40px rgba(0,0,0,.7)!important; padding:0!important; }
+.leaflet-popup-content { margin:14px 15px!important; }
+.leaflet-popup-tip { background:var(--bg2)!important; }
+.leaflet-popup-close-button { color:var(--dim)!important; top:8px!important;
+  right:10px!important; font-size:20px!important; padding:5px!important; }
+.pst { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin:10px 0; }
+.psc { background:var(--surf); border-radius:10px; padding:9px; text-align:center; }
+.psn { font-weight:800; font-size:18px; }
+.psl { font-size:10px; color:var(--dim); margin-top:2px; }
+.pbtn { width:100%; padding:11px; border-radius:11px; border:none;
+  font-weight:700; font-size:14px; cursor:pointer; }
+
+/* ── PRISER PAGE ── */
+#pgPris {
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain; padding:16px 14px 24px;
+}
+.ph { background:linear-gradient(135deg,var(--surf2),var(--surf));
+  border:1px solid var(--border); border-radius:18px; padding:18px; margin-bottom:16px; }
+.ph h1 { font-size:20px; font-weight:800; margin-bottom:4px; }
+.ph p { font-size:13px; color:var(--dim); }
+.sec { font-weight:700; font-size:15px; margin:16px 0 12px;
+  display:flex; align-items:center; gap:8px; }
+.sec::after { content:''; flex:1; height:1px; background:var(--border); }
+.calcbox { background:var(--bg); border:1px solid var(--border);
+  border-radius:16px; padding:14px; margin-bottom:16px; }
+.calcbox h2 { font-size:13px; font-weight:600; margin-bottom:12px; }
+.calclbl { display:flex; justify-content:space-between; font-size:12px;
+  color:var(--dim); margin-bottom:6px; }
+.calclbl b { color:var(--text); font-weight:600; }
+input[type=range] { width:100%; accent-color:var(--accent); cursor:pointer; }
+.calcgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px; }
+.calccel { background:var(--surf2); border-radius:10px; padding:9px 5px; text-align:center; }
+.calccel.win { border:1px solid rgba(0,229,160,.3); background:rgba(0,229,160,.06); }
+.calccel .num { font-weight:700; font-size:15px; }
+.calccel.win .num { color:var(--accent); }
+.calccel .lbl { font-size:9px; color:var(--dim); margin-top:2px; }
+.pcard { background:var(--surf); border:1px solid var(--border);
+  border-radius:18px; padding:16px; margin-bottom:12px; }
+.pcard-h { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.plogo { width:46px; height:46px; border-radius:14px; display:flex; align-items:center;
+  justify-content:center; font-weight:800; font-size:18px; flex-shrink:0; }
+.pname { font-weight:700; font-size:17px; }
+.ptagline { font-size:12px; color:var(--dim); margin-top:2px; }
+.pbadge { margin-left:auto; padding:4px 10px; border-radius:50px;
+  font-size:11px; font-weight:700; flex-shrink:0; }
+.pgrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.pgcell { background:var(--surf2); border-radius:12px; padding:11px; text-align:center; }
+.pgcell .pgn { font-weight:800; font-size:19px; }
+.pgcell .pgl { font-size:10px; color:var(--dim); margin-top:2px; }
+.prow { display:flex; align-items:center; justify-content:space-between;
+  padding:9px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.prow:last-child { border:none; padding-bottom:0; }
+.prow-n { font-weight:500; }
+.prow-s { font-size:12px; color:var(--dim); margin-top:1px; }
+.prow-p { font-weight:700; color:var(--accent); }
+.tip { background:rgba(0,229,160,.06); border:1px solid rgba(0,229,160,.15);
+  border-radius:14px; padding:13px; margin-bottom:10px; font-size:13px; line-height:1.6; }
+.tip strong { color:var(--accent); }
+
+/* ── QR MODAL ── */
+#qrModal { position:fixed; inset:0; z-index:2000; background:rgba(4,6,14,.98);
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  padding:20px; gap:16px; }
+#qrModal.open { display:flex; }
+.qrt { font-weight:800; font-size:20px; text-align:center; }
+.qrs { font-size:13px; color:var(--dim); text-align:center; max-width:260px; line-height:1.6; }
+.qrvp { position:relative; width:min(78vw,300px); height:min(78vw,300px);
+  border-radius:20px; overflow:hidden; background:#000; flex-shrink:0; }
+#qrVid { width:100%; height:100%; object-fit:cover; display:block; }
+#qrCvs { display:none; }
+.qrc { position:absolute; width:28px; height:28px; border-color:var(--accent); border-style:solid; }
+.qrc.tl { top:12px; left:12px; border-width:3px 0 0 3px; border-radius:6px 0 0 0; }
+.qrc.tr { top:12px; right:12px; border-width:3px 3px 0 0; border-radius:0 6px 0 0; }
+.qrc.bl { bottom:12px; left:12px; border-width:0 0 3px 3px; border-radius:0 0 0 6px; }
+.qrc.br { bottom:12px; right:12px; border-width:0 3px 3px 0; border-radius:0 0 6px 0; }
+.qrsl { position:absolute; left:12px; right:12px; height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  box-shadow:0 0 10px var(--accent); animation:scan 2s ease-in-out infinite; }
+@keyframes scan { 0%,100%{top:12px;opacity:0} 8%{opacity:1} 92%{opacity:1} 50%{top:calc(100% - 12px)} }
+.qrst { font-size:13px; color:var(--dim); text-align:center; }
+.qrst.found { color:var(--accent); font-weight:600; }
+.qrst.err { color:var(--red); }
+.qrres { width:100%; max-width:310px; background:var(--bg2); border:1px solid var(--border);
+  border-radius:18px; padding:16px; display:none; animation:fup .3s ease; }
+.qrres.show { display:block; }
+@keyframes fup { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+.qrrh { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.qrri { width:44px; height:44px; border-radius:13px; display:flex; align-items:center;
+  justify-content:center; font-weight:800; font-size:18px; flex-shrink:0; }
+.qrbn { font-weight:700; font-size:16px; }
+.qrbid { font-size:11px; color:var(--dim); margin-top:2px; font-family:monospace; }
+.qrac { display:flex; flex-direction:column; gap:7px; }
+.qrm { width:100%; padding:12px; border-radius:11px; border:none; font-weight:700; font-size:14px; cursor:pointer; }
+.qrsb { width:100%; padding:10px; border-radius:11px; border:1px solid var(--border);
+  background:var(--surf2); color:var(--text); font-size:13px; cursor:pointer; }
+.qrft { display:flex; gap:9px; width:100%; max-width:310px; }
+.qrcb { flex:1; padding:12px; border-radius:50px; border:1px solid var(--border);
+  background:var(--surf2); color:var(--text); font-size:14px; cursor:pointer; text-align:center; }
+.qrab { flex:1; padding:12px; border-radius:50px; border:1px solid rgba(0,229,160,.3);
+  background:rgba(0,229,160,.08); color:var(--accent); font-size:14px; font-weight:600;
+  cursor:pointer; text-align:center; }
+
+/* ── SETUP SHEET ── */
+#setup { position:fixed; inset:0; z-index:3000; background:rgba(5,8,18,.97);
+  display:flex; align-items:flex-end; justify-content:center; }
+#setup.hide { display:none; }
+.sbox { background:var(--bg2); border-radius:24px 24px 0 0; width:100%; max-width:540px;
+  padding:20px 20px 0; max-height:92vh; overflow-y:auto;
+  padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
+.shdl { width:36px; height:4px; border-radius:50px; background:var(--surf2); margin:0 auto 18px; }
+.stit { font-weight:800; font-size:22px; margin-bottom:5px; }
+.ssub { font-size:13px; color:var(--dim); line-height:1.6; margin-bottom:14px; }
+.pprow { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.pp { padding:4px 11px; border-radius:50px; font-size:12px; font-weight:600; }
+.sstep { background:var(--surf); border:1px solid var(--border); border-radius:14px;
+  padding:14px; margin-bottom:10px; }
+.sstep h3 { font-size:14px; font-weight:600; margin-bottom:8px;
+  display:flex; align-items:center; gap:8px; }
+.snn { width:22px; height:22px; border-radius:50%; background:var(--accent); color:#040a14;
+  font-size:11px; font-weight:800; display:flex; align-items:center;
+  justify-content:center; flex-shrink:0; }
+.ir { display:flex; gap:7px; }
+.sinp { flex:1; background:var(--surf2); border:1px solid var(--border); color:var(--text);
+  font-size:13px; padding:10px 11px; border-radius:10px; outline:none; }
+.sinp:focus { border-color:var(--accent); }
+.sinp::placeholder { color:var(--dim); }
+.bg { padding:10px 16px; border-radius:10px; background:var(--accent); color:#040a14;
+  border:none; font-weight:700; font-size:13px; cursor:pointer; }
+.gg { padding:10px 16px; border-radius:10px; background:var(--surf2); color:var(--dim);
+  border:1px solid var(--border); font-size:13px; cursor:pointer; }
+.tr { font-size:12px; padding:8px 11px; border-radius:9px; margin-top:7px;
+  display:none; line-height:1.5; }
+.tr.ok { display:block; background:rgba(0,229,160,.1); color:var(--accent); }
+.tr.er { display:block; background:rgba(255,77,77,.1); color:var(--red); }
+.sact { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; padding-bottom:6px; }
 </style>
 </head>
 <body>
 
-<!-- ═══ SETUP ═══ -->
+<!-- ── SETUP ── -->
 <div id="setup">
-  <div class="setup-box">
-    <div class="setup-title">🛴 SparkNorge</div>
-    <div class="setup-sub">Live sparkesykler · QR-skanner · GPS-navigasjon</div>
-    <div class="prov-row">
-      <span class="prov-pill" style="background:rgba(233,30,140,.1);color:var(--voi)">● Voi</span>
-      <span class="prov-pill" style="background:rgba(52,209,107,.1);color:var(--bolt)">● Bolt</span>
-      <span class="prov-pill" style="background:rgba(255,87,34,.1);color:var(--ryde)">● Ryde</span>
-      <span class="prov-pill" style="background:rgba(108,92,231,.1);color:var(--dott)">● Dott</span>
+  <div class="sbox">
+    <div class="shdl"></div>
+    <div class="stit">🛴 SparkNorge</div>
+    <div class="ssub">Live sparkesykler · GPS · QR-skanner · Priser</div>
+    <div class="pprow">
+      <span class="pp" style="background:rgba(233,30,140,.1);color:var(--voi)">● Voi</span>
+      <span class="pp" style="background:rgba(52,209,107,.1);color:var(--bolt)">● Bolt</span>
+      <span class="pp" style="background:rgba(255,87,34,.1);color:var(--ryde)">● Ryde</span>
+      <span class="pp" style="background:rgba(108,92,231,.1);color:var(--dott)">● Dott</span>
     </div>
-    <div class="step">
-      <div class="step-head"><span class="step-n">1</span><span class="step-title">Lim inn Cloudflare Worker-URL</span></div>
-      <div class="inp-row">
-        <input class="proxy-inp" id="proxyUrl" type="url" placeholder="https://entur-proxy.navn.workers.dev">
-        <button class="btn-p" onclick="testProxy()" id="testBtn">Test</button>
+    <div class="sstep">
+      <h3><span class="snn">1</span>Lim inn Cloudflare Worker-URL</h3>
+      <div class="ir">
+        <input class="sinp" id="proxyUrl" type="url" placeholder="https://entur-proxy.navn.workers.dev">
+        <button class="bg" onclick="testProxy()">Test</button>
       </div>
-      <div class="test-res" id="testRes"></div>
+      <div class="tr" id="testRes"></div>
     </div>
-    <div class="divider"></div>
-    <div class="setup-actions">
-      <button class="btn-g" onclick="skipSetup()">Demo-modus</button>
-      <button class="btn-p" id="connectBtn" onclick="connectProxy()" disabled>🚀 Start</button>
+    <div class="sact">
+      <button class="gg" onclick="skipSetup()">Demo-modus</button>
+      <button class="bg" id="connectBtn" onclick="connectProxy()" disabled>🚀 Start</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ QR MODAL ═══ -->
+<!-- ── QR MODAL ── -->
 <div id="qrModal">
-  <div class="qr-title">📷 Skann sparkesykkel</div>
-  <div class="qr-sub">Rett kameraet mot QR-koden på sparkesykkelen</div>
-
-  <div class="qr-viewport" id="qrViewport">
-    <video id="qrVideo" autoplay muted playsinline></video>
-    <canvas id="qrCanvas"></canvas>
-    <div class="qr-c-tl qr-corner"></div>
-    <div class="qr-c-tr qr-corner"></div>
-    <div class="qr-c-bl qr-corner"></div>
-    <div class="qr-c-br qr-corner"></div>
-    <div class="qr-scan" id="qrScanLine"></div>
+  <div class="qrt">📷 Skann sparkesykkel</div>
+  <div class="qrs">Rett kameraet mot QR-koden på sykkelen</div>
+  <div class="qrvp">
+    <video id="qrVid" autoplay muted playsinline></video>
+    <canvas id="qrCvs"></canvas>
+    <div class="qrc tl"></div><div class="qrc tr"></div>
+    <div class="qrc bl"></div><div class="qrc br"></div>
+    <div class="qrsl"></div>
   </div>
-
-  <div class="qr-status" id="qrStatus">Initialiserer kamera…</div>
-
-  <div class="qr-result" id="qrResult">
-    <div class="qr-res-head">
-      <div class="qr-res-ico" id="qrResIco"></div>
-      <div>
-        <div class="qr-res-name" id="qrResName"></div>
-        <div class="qr-res-id" id="qrResId"></div>
-      </div>
+  <div class="qrst" id="qrSt">Starter kamera…</div>
+  <div class="qrres" id="qrRes">
+    <div class="qrrh">
+      <div class="qrri" id="qrRi"></div>
+      <div><div class="qrbn" id="qrRn"></div><div class="qrbid" id="qrRid"></div></div>
     </div>
-    <div class="qr-actions">
-      <button class="qr-action-main" id="qrActionMain"></button>
-      <button class="qr-action-sec" id="qrActionWeb"></button>
-      <div class="qr-raw" id="qrRaw"></div>
+    <div class="qrac">
+      <button class="qrm" id="qrMb"></button>
+      <button class="qrsb" id="qrSb2"></button>
     </div>
   </div>
-
-  <div class="qr-footer">
-    <button class="qr-close-btn" onclick="closeQR()">✕ Lukk</button>
-    <button class="qr-scan-again show" id="qrScanAgainBtn" onclick="resetQR()">↻ Skann igjen</button>
+  <div class="qrft">
+    <div class="qrcb" onclick="closeQR()">✕ Lukk</div>
+    <div class="qrab" id="qrAb" onclick="resetQR()">↻ Igjen</div>
   </div>
 </div>
 
-<!-- ═══ APP ═══ -->
-<nav>
-  <div class="logo">🛴 Spark<em>Norge</em></div>
-  <div class="nav-right">
+<!-- ── TOP NAV ── -->
+<div id="topNav">
+  <div class="inner">
+    <div class="logo">🛴 Spark<em>Norge</em></div>
     <select class="city-sel" id="citySel" onchange="changeCity(this.value)">
       <option value="trondheim">Trondheim</option>
       <option value="oslo">Oslo</option>
@@ -365,573 +389,469 @@ nav{position:fixed;top:0;left:0;right:0;z-index:3000;padding-top:var(--safe-top,
       <option value="fredrikstad">Fredrikstad</option>
       <option value="drammen">Drammen</option>
     </select>
-    <button class="nav-btn" id="gpsBtn" onclick="locateMe()" title="Min posisjon">📍</button>
-    <button class="nav-btn" id="qrBtn" onclick="openQR()" title="Skann QR-kode" style="font-size:19px">⬛</button>
   </div>
-</nav>
+</div>
 
-<div class="app">
-  <div class="sb" id="sb">
-    <div class="sb-handle" onclick="toggleSheet()"><div class="sb-handle-bar"></div></div>
-    <div class="loc-banner" id="locBanner">📍 Viser nær <b id="locName">deg</b></div>
-    <div class="sb-top">
-      <div class="search-wrap">
-        <span style="color:var(--dim);font-size:14px">🔍</span>
-        <input id="srch" placeholder="Søk leverandør eller ID…" oninput="renderList()">
-      </div>
-      <div class="filters" id="fbar"></div>
+<!-- ── KART PAGE ── -->
+<div id="pgMap" class="page on">
+  <div id="map"></div>
+  <div class="fab" id="fabGps" onclick="locateMe()">📍</div>
+  <div class="fab" id="fabQr" onclick="openQR()">⬛</div>
+  <div id="strip"></div>
+  <div class="sheet peek" id="sheet">
+    <div class="sheet-handle" onclick="toggleSheet()">
+      <div class="sheet-bar"></div>
+      <div class="sheet-count" id="sheetCount">Laster…</div>
     </div>
-    <div class="sort-bar">
-      <span class="sort-lbl">Sorter:</span>
-      <button class="sort-btn on" onclick="setSort('dist',this)">📍 Nærmest</button>
-      <button class="sort-btn" onclick="setSort('batt',this)">🔋 Batteri</button>
-      <button class="sort-btn" onclick="setSort('prov',this)">A–Å</button>
-    </div>
-    <div class="sb-list" id="sbl">
-      <div class="shim"></div><div class="shim"></div><div class="shim"></div><div class="shim"></div>
-    </div>
-    <div class="sb-foot">
-      <span><span class="ldot" id="ldot"></span><span id="stxt">Laster…</span></span>
-      <span id="ctxt" style="color:var(--accent);font-weight:600">–</span>
+    <div class="sheet-filters" id="fbar"></div>
+    <div class="sheet-list" id="sbl">
+      <div class="shim"></div><div class="shim"></div><div class="shim"></div>
     </div>
   </div>
-  <div id="map"></div>
-  <div id="strip"></div>
+</div>
+
+<!-- ── PRISER PAGE ── -->
+<div id="pgPris" class="page">
+
+  <div class="ph"><h1>💸 Prisguide</h1><p>Finn billigste leverandør for din kjørestil</p></div>
+
+  <div class="calcbox">
+    <h2>🧮 Hva koster turen din?</h2>
+    <div class="calclbl"><span>Minutter på sykkelen</span><b id="cml">10 min</b></div>
+    <input type="range" id="cmin" min="1" max="60" value="10" oninput="updateCalc()">
+    <div class="calcgrid" id="cgrid"></div>
+  </div>
+
+  <div class="sec">Per leverandør</div>
+
+  <!-- VOI -->
+  <div class="pcard">
+    <div class="pcard-h">
+      <div class="plogo" style="background:rgba(233,30,140,.12);color:var(--voi)">V</div>
+      <div><div class="pname" style="color:var(--voi)">Voi</div><div class="ptagline">Størst utvalg · Bred dekning</div></div>
+      <div class="pbadge" style="background:rgba(233,30,140,.1);color:var(--voi)">Populær</div>
+    </div>
+    <div class="pgrid">
+      <div class="pgcell"><div class="pgn" style="color:var(--voi)">10 kr</div><div class="pgl">Oppstart</div></div>
+      <div class="pgcell"><div class="pgn" style="color:var(--voi)">3 kr/min</div><div class="pgl">Kjøring</div></div>
+    </div>
+    <div class="prow"><div><div class="prow-n">Dagspass</div><div class="prow-s">100 min</div></div><div class="prow-p">69 kr</div></div>
+    <div class="prow"><div><div class="prow-n">Fri oppstart 1 mnd</div><div class="prow-s">Ubegrensede starter</div></div><div class="prow-p">29 kr</div></div>
+    <div class="prow"><div><div class="prow-n">Månedspass</div><div class="prow-s">300 min</div></div><div class="prow-p">299 kr</div></div>
+    <div class="prow"><div><div class="prow-n">Månedspass+</div><div class="prow-s">750 min</div></div><div class="prow-p">699 kr</div></div>
+  </div>
+
+  <!-- BOLT -->
+  <div class="pcard">
+    <div class="pcard-h">
+      <div class="plogo" style="background:rgba(52,209,107,.12);color:var(--bolt)">B</div>
+      <div><div class="pname" style="color:var(--bolt)">Bolt</div><div class="ptagline">Billigst per tur · Ingen oppstart</div></div>
+      <div class="pbadge" style="background:rgba(52,209,107,.1);color:var(--bolt)">Billigst</div>
+    </div>
+    <div class="pgrid">
+      <div class="pgcell"><div class="pgn" style="color:var(--bolt)">0–5 kr</div><div class="pgl">Oppstart</div></div>
+      <div class="pgcell"><div class="pgn" style="color:var(--bolt)">2,5 kr/min</div><div class="pgl">Kjøring</div></div>
+    </div>
+    <div class="prow"><div><div class="prow-n">Dagspass</div><div class="prow-s">80 min</div></div><div class="prow-p">69 kr</div></div>
+    <div class="prow"><div><div class="prow-n">14-dagers</div><div class="prow-s">150 min</div></div><div class="prow-p">199 kr</div></div>
+    <div class="prow"><div><div class="prow-n">Månedspass</div><div class="prow-s">300 min = 1,30 kr/min!</div></div><div class="prow-p">389 kr</div></div>
+    <div class="prow"><div><div class="prow-n">Månedspass+</div><div class="prow-s">800 min</div></div><div class="prow-p">699 kr</div></div>
+  </div>
+
+  <!-- RYDE -->
+  <div class="pcard">
+    <div class="pcard-h">
+      <div class="plogo" style="background:rgba(255,87,34,.12);color:var(--ryde)">R</div>
+      <div><div class="pname" style="color:var(--ryde)">Ryde</div><div class="ptagline">Norsk · Robust · God demping</div></div>
+      <div class="pbadge" style="background:rgba(255,87,34,.1);color:var(--ryde)">Norsk</div>
+    </div>
+    <div class="pgrid">
+      <div class="pgcell"><div class="pgn" style="color:var(--ryde)">5 kr</div><div class="pgl">Oppstart</div></div>
+      <div class="pgcell"><div class="pgn" style="color:var(--ryde)">2,5 kr/min</div><div class="pgl">Kjøring</div></div>
+    </div>
+    <div class="prow"><div><div class="prow-n">Dagspass</div><div class="prow-s">75 min</div></div><div class="prow-p">79 kr</div></div>
+    <div class="prow"><div><div class="prow-n">14-dagers</div><div class="prow-s">200 min – beste verdi!</div></div><div class="prow-p">249 kr</div></div>
+    <div class="prow"><div><div class="prow-n">Fri oppstart 1 mnd</div><div class="prow-s">Ubegrensede starter</div></div><div class="prow-p">29 kr</div></div>
+    <div class="prow"><div><div class="prow-n">Månedspass</div><div class="prow-s">300 min</div></div><div class="prow-p">399 kr</div></div>
+    <div class="prow"><div><div class="prow-n">Månedspass+</div><div class="prow-s">750 min</div></div><div class="prow-p">699 kr</div></div>
+  </div>
+
+  <!-- DOTT -->
+  <div class="pcard">
+    <div class="pcard-h">
+      <div class="plogo" style="background:rgba(108,92,231,.12);color:var(--dott)">D</div>
+      <div><div class="pname" style="color:var(--dott)">Dott</div><div class="ptagline">Trondheim · Europeisk kvalitet</div></div>
+    </div>
+    <div class="pgrid">
+      <div class="pgcell"><div class="pgn" style="color:var(--dott)">10 kr</div><div class="pgl">Oppstart</div></div>
+      <div class="pgcell"><div class="pgn" style="color:var(--dott)">3 kr/min</div><div class="pgl">Kjøring</div></div>
+    </div>
+  </div>
+
+  <div class="sec">💡 Tips</div>
+  <div class="tip"><strong>Kjører du daglig?</strong> Bolt månedspass: 389 kr / 300 min = bare 1,30 kr/min!</div>
+  <div class="tip"><strong>Én rask tur?</strong> Bolt er billigst – ingen oppstart. 10 min koster bare 25 kr.</div>
+  <div class="tip"><strong>Dårlig vei?</strong> Ryde har størst hjul og best demping for norske gater.</div>
+  <div class="tip"><strong>Dagsturist?</strong> Voi dagspass: 100 min / 69 kr – best verdi for utforsking.</div>
+  <div style="height:16px"></div>
+</div>
+
+<!-- ── TAB BAR ── -->
+<div id="tabBar">
+  <div class="tab on" id="tab-kart" onclick="switchTab('kart')">
+    <div class="tab-ico">🗺</div><div class="tab-lbl">Kart</div>
+  </div>
+  <div class="tab" id="tab-pris" onclick="switchTab('pris')">
+    <div class="tab-ico">💸</div><div class="tab-lbl">Priser</div>
+  </div>
+  <div class="tab" id="tab-qr" onclick="openQR()">
+    <div class="tab-ico">⬛</div><div class="tab-lbl">Skann QR</div>
+  </div>
 </div>
 
 <script>
-// ═══ CONFIG ═══
-const SYSTEMS = {
-  trondheim:    ['voitrondheim','rydetrondheim','dotttrondheim'],
-  oslo:         ['voioslo','boltoslo','rydeoslo'],
-  bergen:       ['voibergen','boltbergen'],
-  stavanger:    ['voistavanger','rydestavanger'],
-  kristiansand: ['voikristiansand','boltkristiansand'],
-  lillestrom:   ['voilillestrom','boltlillestrom'],
-  fredrikstad:  ['voifredrikstad','boltfredrikstad','rydefredrikstad'],
-  drammen:      ['boltdrammen'],
+// ── DATA ──
+const SYS = {
+  trondheim:['voitrondheim','rydetrondheim','dotttrondheim'],
+  oslo:['voioslo','boltoslo','rydeoslo'],
+  bergen:['voibergen','boltbergen'],
+  stavanger:['voistavanger','rydestavanger'],
+  kristiansand:['voikristiansand','boltkristiansand'],
+  lillestrom:['voilillestrom','boltlillestrom'],
+  fredrikstad:['voifredrikstad','boltfredrikstad','rydefredrikstad'],
+  drammen:['boltdrammen'],
 };
 const P = {
-  voi:  {label:'Voi',  color:'#e91e8c', tc:'#fff'},
-  bolt: {label:'Bolt', color:'#34d16b', tc:'#001408'},
-  ryde: {label:'Ryde', color:'#ff5722', tc:'#fff'},
-  dott: {label:'Dott', color:'#6c5ce7', tc:'#fff'},
+  voi: {label:'Voi', color:'#e91e8c', tc:'#fff',    start:10, pm:3},
+  bolt:{label:'Bolt',color:'#34d16b', tc:'#001408', start:0,  pm:2.5},
+  ryde:{label:'Ryde',color:'#ff5722', tc:'#fff',    start:5,  pm:2.5},
+  dott:{label:'Dott',color:'#6c5ce7', tc:'#fff',    start:10, pm:3},
 };
-const CENTERS = {
+const CEN = {
   trondheim:[63.4305,10.3951], oslo:[59.9139,10.7522], bergen:[60.3913,5.3221],
-  stavanger:[58.9700,5.7331],  kristiansand:[58.1467,7.9956],
-  lillestrom:[59.9535,11.0501],fredrikstad:[59.2112,10.9298],drammen:[59.7440,10.2045],
+  stavanger:[58.97,5.7331], kristiansand:[58.1467,7.9956],
+  lillestrom:[59.9535,11.0501], fredrikstad:[59.2112,10.9298], drammen:[59.744,10.2045],
 };
 const DEEP = {voi:'https://voi.com',bolt:'https://bolt.eu',ryde:'https://ryde-technology.com',dott:'https://ridedott.com'};
-
-// QR URL patterns for each provider
-const QR_PATTERNS = [
-  { provider:'voi',  pattern:/voiscooter\.com|voi\.com|ride\.voi/i,
-    getUrl: u => u, webUrl:'https://voi.com', label:'Åpne i Voi' },
-  { provider:'bolt', pattern:/bolt\.eu|sc\.bolt|rental\.bolt/i,
-    getUrl: u => u, webUrl:'https://account.bolt.eu/scooter', label:'Åpne i Bolt' },
-  { provider:'ryde', pattern:/ryde|rideto\.me/i,
-    getUrl: u => u, webUrl:'https://app.ryde-technology.com', label:'Åpne i Ryde' },
-  { provider:'dott', pattern:/ridedott\.com|dott\.to/i,
-    getUrl: u => u, webUrl:'https://ridedott.com', label:'Åpne i Dott' },
-  { provider:'tier', pattern:/tier\.app|tier\.here/i,
-    getUrl: u => u, webUrl:'https://tier.app', label:'Åpne i TIER' },
+const QRPAT = [
+  {p:'voi', re:/voiscooter|voi\.com|ride\.voi/i, url:'https://voi.com'},
+  {p:'bolt',re:/bolt\.eu|sc\.bolt/i,             url:'https://account.bolt.eu'},
+  {p:'ryde',re:/ryde|rideto\.me/i,               url:'https://app.ryde-technology.com'},
+  {p:'dott',re:/ridedott|dott\.to/i,             url:'https://ridedott.com'},
 ];
 
-let city='trondheim', proxyBase='', demoMode=false;
+// ── STATE ──
+let city='trondheim', proxy='', demo=false;
 let scooters=[], markers=[], hidden=new Set();
-let userLat=null, userLng=null, gpsMarker=null, gpsPulse=null;
-let sortMode='dist', sheetOpen=true;
-let leafMap, refreshTimer;
-let qrStream=null, qrAnimFrame=null, qrFound=false;
+let ulat=null, ulng=null, gpsM=null, gpsP=null;
+let sheetOpen=false, leafMap, refreshTimer;
+let qStream=null, qFrame=null, qFound=false;
 
-// ═══ INIT ═══
+// ── INIT ──
 window.addEventListener('DOMContentLoaded', () => {
-  leafMap = L.map('map',{zoomControl:false}).setView(CENTERS.trondheim,14);
+  leafMap = L.map('map',{zoomControl:false}).setView(CEN.trondheim,14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'© OpenStreetMap', maxZoom:19
   }).addTo(leafMap);
   L.control.zoom({position:'bottomright'}).addTo(leafMap);
   buildFilters();
-
+  updateCalc();
   const saved = localStorage.getItem('sn_proxy');
-  if(saved){ proxyBase=saved; document.getElementById('proxyUrl').value=saved; closeSetup(); locateMe(true); loadCity('trondheim'); }
+  if(saved){
+    proxy=saved;
+    document.getElementById('proxyUrl').value=saved;
+    closeSetup();
+    locateMe(true);
+    loadCity('trondheim');
+  }
 });
 
-// ═══ SETUP ═══
-async function testProxy(){
-  const url=document.getElementById('proxyUrl').value.trim();
-  const res=document.getElementById('testRes'), btn=document.getElementById('testBtn');
-  res.className='test-res'; res.textContent='⏳ Tester…'; res.style.display='block';
-  btn.disabled=true; document.getElementById('connectBtn').disabled=true;
-  try{
-    const r=await fetch(`${url}/voitrondheim`,{signal:AbortSignal.timeout(9000)});
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j=await r.json(); const n=j?.data?.bikes?.length??0;
-    res.className='test-res ok'; res.textContent=`✅ Fungerer! ${n} Voi-sparkesykler i Trondheim.`;
-    document.getElementById('connectBtn').disabled=false;
-  }catch(e){res.className='test-res err'; res.textContent=`❌ ${e.message}`;}
-  btn.disabled=false;
+// ── NAVIGATION ──
+function switchTab(t) {
+  document.getElementById('pgMap').classList.toggle('on', t==='kart');
+  document.getElementById('pgPris').classList.toggle('on', t==='pris');
+  document.getElementById('tab-kart').classList.toggle('on', t==='kart');
+  document.getElementById('tab-pris').classList.toggle('on', t==='pris');
+  document.getElementById('tab-qr').classList.remove('on');
+  if(t==='kart') setTimeout(()=>leafMap.invalidateSize(), 60);
 }
-function connectProxy(){
-  const url=document.getElementById('proxyUrl').value.trim(); if(!url) return;
-  proxyBase=url; localStorage.setItem('sn_proxy',url);
+
+// ── SETUP ──
+async function testProxy() {
+  const u = document.getElementById('proxyUrl').value.trim();
+  const r = document.getElementById('testRes');
+  r.className='tr'; r.textContent='⏳ Tester…'; r.style.display='block';
+  document.getElementById('connectBtn').disabled = true;
+  try {
+    const res = await fetch(`${u}/voitrondheim`,{signal:AbortSignal.timeout(9000)});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const j = await res.json();
+    const n = j?.data?.bikes?.length ?? 0;
+    r.className='tr ok'; r.textContent=`✅ Fungerer! ${n} Voi i Trondheim.`;
+    document.getElementById('connectBtn').disabled = false;
+  } catch(e) {
+    r.className='tr er'; r.textContent=`❌ ${e.message}`;
+  }
+}
+function connectProxy() {
+  const u = document.getElementById('proxyUrl').value.trim();
+  if(!u) return;
+  proxy=u; localStorage.setItem('sn_proxy',u);
   closeSetup(); locateMe(true); loadCity('trondheim');
 }
-function skipSetup(){ demoMode=true; closeSetup(); locateMe(true); loadDemoData(); }
-function closeSetup(){ document.getElementById('setup').classList.add('hide'); setTimeout(()=>leafMap.invalidateSize(),100); }
-
-// ═══ GPS ═══
-function locateMe(silent=false){
-  if(!navigator.geolocation){ if(!silent) alert('GPS ikke tilgjengelig.'); return; }
-  const btn=document.getElementById('gpsBtn');
-  btn.classList.add('spin'); btn.textContent='↻';
-  navigator.geolocation.getCurrentPosition(pos=>{
-    userLat=pos.coords.latitude; userLng=pos.coords.longitude;
-    btn.classList.remove('spin'); btn.classList.add('on'); btn.textContent='📍';
-    if(gpsPulse) leafMap.removeLayer(gpsPulse);
-    if(gpsMarker) leafMap.removeLayer(gpsMarker);
-    gpsPulse=L.marker([userLat,userLng],{icon:L.divIcon({className:'',html:'<div class="gps-pulse"></div>',iconSize:[50,50],iconAnchor:[25,25]}),zIndexOffset:900}).addTo(leafMap);
-    gpsMarker=L.marker([userLat,userLng],{icon:L.divIcon({className:'',html:'<div class="gps-marker"></div>',iconSize:[18,18],iconAnchor:[9,9]}),zIndexOffset:1000}).addTo(leafMap);
-    leafMap.flyTo([userLat,userLng],15,{duration:1.2});
-    document.getElementById('locBanner').classList.add('on');
-    reverseGeocode(userLat,userLng);
-    const closest=getClosestCity(userLat,userLng);
-    if(closest!==city){ city=closest; document.getElementById('citySel').value=city; if(!demoMode) loadCity(city); else loadDemoData(); }
-    else renderList();
-  },err=>{ btn.classList.remove('spin'); btn.textContent='📍'; if(!silent) alert('Kunne ikke hente posisjon.'); },{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
-}
-async function reverseGeocode(lat,lng){
-  try{ const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
-    const j=await r.json(); document.getElementById('locName').textContent=j.address?.suburb||j.address?.neighbourhood||j.address?.city||'deg'; }catch{}
-}
-function getClosestCity(lat,lng){
-  let best='trondheim',bestD=Infinity;
-  for(const [c,[clat,clng]] of Object.entries(CENTERS)){ const d=Math.hypot(lat-clat,lng-clng); if(d<bestD){bestD=d;best=c;} }
-  return best;
-}
-function distTo(s){ if(userLat==null||!s.lat) return Infinity; const R=6371000,dLat=(s.lat-userLat)*Math.PI/180,dLng=(s.lng-userLng)*Math.PI/180,a=Math.sin(dLat/2)**2+Math.cos(userLat*Math.PI/180)*Math.cos(s.lat*Math.PI/180)*Math.sin(dLng/2)**2; return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
-function fmtDist(m){ if(m===Infinity) return ''; return m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km'; }
-
-// ═══ QR SCANNER ═══
-async function openQR(){
-  document.getElementById('qrModal').classList.add('open');
-  document.getElementById('qrResult').classList.remove('show');
-  document.getElementById('qrScanAgainBtn').classList.add('show');
-  qrFound=false;
-  setQrStatus('Starter kamera…','scanning');
-  try{
-    qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
-    const video=document.getElementById('qrVideo');
-    video.srcObject=qrStream;
-    video.play();
-    video.addEventListener('loadedmetadata',()=>{ setQrStatus('Rett mot QR-koden på sparkesykkelen','scanning'); scanLoop(); },{once:true});
-  }catch(e){
-    setQrStatus('Kunne ikke starte kamera. Tillat kameratilgang i nettleseren.','err');
-  }
+function skipSetup() { demo=true; closeSetup(); locateMe(true); loadDemo(); }
+function closeSetup() {
+  document.getElementById('setup').classList.add('hide');
+  setTimeout(()=>leafMap.invalidateSize(), 150);
 }
 
-function scanLoop(){
-  if(qrFound) return;
-  const video=document.getElementById('qrVideo');
-  const canvas=document.getElementById('qrCanvas');
-  if(video.readyState===video.HAVE_ENOUGH_DATA){
-    canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-    const ctx=canvas.getContext('2d');
-    ctx.drawImage(video,0,0,canvas.width,canvas.height);
-    const img=ctx.getImageData(0,0,canvas.width,canvas.height);
-    const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
-    if(code){ handleQR(code.data); return; }
-  }
-  qrAnimFrame=requestAnimationFrame(scanLoop);
+// ── GPS ──
+function locateMe(silent=false) {
+  if(!navigator.geolocation){ if(!silent) alert('GPS støttes ikke.'); return; }
+  const btn = document.getElementById('fabGps');
+  btn.classList.add('spinning'); btn.textContent='↻';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      ulat = pos.coords.latitude; ulng = pos.coords.longitude;
+      btn.classList.remove('spinning'); btn.classList.add('on'); btn.textContent='📍';
+      if(gpsP) leafMap.removeLayer(gpsP);
+      if(gpsM) leafMap.removeLayer(gpsM);
+      gpsP = L.marker([ulat,ulng],{icon:L.divIcon({className:'',html:'<div class="gp"></div>',iconSize:[50,50],iconAnchor:[25,25]}),zIndexOffset:900}).addTo(leafMap);
+      gpsM = L.marker([ulat,ulng],{icon:L.divIcon({className:'',html:'<div class="gm"></div>',iconSize:[18,18],iconAnchor:[9,9]}),zIndexOffset:1000}).addTo(leafMap);
+      leafMap.flyTo([ulat,ulng],15,{duration:1.2});
+      const cl = Object.entries(CEN).sort((a,b)=>
+        Math.hypot(a[1][0]-ulat,a[1][1]-ulng) - Math.hypot(b[1][0]-ulat,b[1][1]-ulng)
+      )[0][0];
+      if(cl !== city){
+        city=cl; document.getElementById('citySel').value=city;
+        demo ? loadDemo() : loadCity(city);
+      } else renderList();
+    },
+    err => {
+      btn.classList.remove('spinning'); btn.textContent='📍';
+      if(!silent) {
+        if(err.code===1) alert(
+          'GPS er blokkert.\n\n' +
+          '📱 iPhone → Safari:\nInnstillinger → Personvern og sikkerhet → Stedstjenester → Safari → Velg "Mens appen brukes"\n\n' +
+          '📱 iPhone → Installert app:\nInnstillinger → Safari → Avansert → Nettsteddata → slett, åpne siden på nytt'
+        );
+        else alert('Kunne ikke hente posisjon (kode ' + err.code + '). Prøv igjen.');
+      }
+    },
+    {enableHighAccuracy:true, timeout:12000, maximumAge:60000}
+  );
 }
 
-function handleQR(rawUrl){
-  qrFound=true;
-  cancelAnimationFrame(qrAnimFrame);
-  stopCamera();
-  document.getElementById('qrScanLine').classList.add('found');
-  setQrStatus('✅ QR-kode funnet!','found');
-
-  // Detect provider
-  const match=QR_PATTERNS.find(p=>p.pattern.test(rawUrl));
-  const result=document.getElementById('qrResult');
-
-  if(match){
-    const prov=P[match.provider]||{label:match.provider,color:'#00e5a0',tc:'#040a14'};
-    document.getElementById('qrResIco').textContent=prov.label[0];
-    document.getElementById('qrResIco').style.cssText=`background:${prov.color}18;color:${prov.color}`;
-    document.getElementById('qrResName').textContent=prov.label+' sparkesykkel';
-
-    // Try to extract vehicle ID from URL
-    const idMatch=rawUrl.match(/\/([A-Z0-9\-]{4,12})\/?(\?|$)/i);
-    document.getElementById('qrResId').textContent=idMatch?'ID: '+idMatch[1]:rawUrl.slice(0,40)+'…';
-
-    const mainBtn=document.getElementById('qrActionMain');
-    mainBtn.textContent=match.label+' →';
-    mainBtn.style.cssText=`background:${prov.color};color:${prov.tc}`;
-    mainBtn.onclick=()=>{ window.open(rawUrl,'_blank'); };
-
-    const webBtn=document.getElementById('qrActionWeb');
-    webBtn.textContent='Åpne '+prov.label+'.com i nettleser';
-    webBtn.onclick=()=>window.open(match.webUrl,'_blank');
-
-    document.getElementById('qrRaw').textContent=rawUrl;
-    document.getElementById('qrRaw').classList.add('show');
-  } else {
-    // Unknown QR – show raw and try to open
-    document.getElementById('qrResIco').textContent='🔗';
-    document.getElementById('qrResIco').style.cssText='background:var(--surf2);color:var(--text)';
-    document.getElementById('qrResName').textContent='Ukjent QR-kode';
-    document.getElementById('qrResId').textContent=rawUrl.slice(0,50);
-    const mainBtn=document.getElementById('qrActionMain');
-    mainBtn.textContent='Åpne link →';
-    mainBtn.style.cssText='background:var(--accent);color:#040a14';
-    mainBtn.onclick=()=>window.open(rawUrl.startsWith('http')?rawUrl:'https://'+rawUrl,'_blank');
-    const webBtn=document.getElementById('qrActionWeb');
-    webBtn.textContent='Kopier link';
-    webBtn.onclick=()=>{ navigator.clipboard?.writeText(rawUrl); webBtn.textContent='✅ Kopiert!'; };
-    document.getElementById('qrRaw').textContent=rawUrl;
-    document.getElementById('qrRaw').classList.add('show');
-  }
-  result.classList.add('show');
+function distTo(s) {
+  if(ulat==null||!s.lat) return Infinity;
+  const R=6371000, dLa=(s.lat-ulat)*Math.PI/180, dLo=(s.lng-ulng)*Math.PI/180;
+  const a=Math.sin(dLa/2)**2+Math.cos(ulat*Math.PI/180)*Math.cos(s.lat*Math.PI/180)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
+function fmtD(m){ return m===Infinity?'': m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km'; }
 
-function resetQR(){
-  qrFound=false;
-  document.getElementById('qrResult').classList.remove('show');
-  document.getElementById('qrScanLine').classList.remove('found');
-  document.getElementById('qrRaw').classList.remove('show');
-  setQrStatus('Starter kamera igjen…','scanning');
-  openQR();
-}
-
-function closeQR(){
-  stopCamera();
-  document.getElementById('qrModal').classList.remove('open');
-  document.getElementById('qrResult').classList.remove('show');
-  document.getElementById('qrScanLine').classList.remove('found');
-  document.getElementById('qrRaw').classList.remove('show');
-  qrFound=false;
-}
-
-function stopCamera(){
-  cancelAnimationFrame(qrAnimFrame);
-  if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream=null; }
-}
-
-function setQrStatus(msg,cls){
-  const el=document.getElementById('qrStatus');
-  el.textContent=msg; el.className='qr-status '+cls;
-}
-
-// ═══ LOAD DATA ═══
-async function loadCity(c){
-  clearTimeout(refreshTimer); setStatus('Henter live data…',false); showShimmers();
-  const all=[];
-  for(const sid of SYSTEMS[c]||[]){
-    try{
-      const r=await fetch(`${proxyBase}/${sid}`,{signal:AbortSignal.timeout(10000)});
+// ── LOAD DATA ──
+async function loadCity(c) {
+  clearTimeout(refreshTimer);
+  document.getElementById('sheetCount').textContent='Henter…';
+  showShimmers();
+  const all = [];
+  for(const sid of SYS[c]||[]) {
+    try {
+      const r = await fetch(`${proxy}/${sid}`,{signal:AbortSignal.timeout(10000)});
       if(!r.ok) continue;
-      const json=await r.json();
-      const bikes=json?.data?.bikes??json?.data?.vehicles??[];
-      const prov=Object.keys(P).find(p=>sid.startsWith(p))||'voi';
+      const j = await r.json();
+      const bikes = j?.data?.bikes ?? j?.data?.vehicles ?? [];
+      const pv = Object.keys(P).find(p=>sid.startsWith(p)) || 'voi';
       bikes.filter(b=>b.lat&&b.lon).forEach(b=>all.push({
-        id:b.bike_id||b.vehicle_id||Math.random().toString(36).slice(2),
-        provider:prov,systemId:sid,lat:Number(b.lat),lng:Number(b.lon),
-        battery:parseBatt(b),disabled:!!(b.is_disabled||b.is_reserved),
-        name:`${P[prov].label} #${(b.bike_id||b.vehicle_id||'????').slice(-4).toUpperCase()}`,
+        id: b.bike_id||b.vehicle_id||Math.random().toString(36).slice(2),
+        provider:pv, lat:+b.lat, lng:+b.lon,
+        battery: parseBatt(b),
+        disabled: !!(b.is_disabled||b.is_reserved),
+        name: `${P[pv].label} #${(b.bike_id||b.vehicle_id||'????').slice(-4).toUpperCase()}`,
       }));
-    }catch(e){console.warn(sid,e.message);}
+    } catch(e){ console.warn(sid,e.message); }
   }
   scooters=all; renderList(); renderMarkers(); renderStrip();
-  const n=scooters.filter(s=>!s.disabled).length;
-  document.getElementById('ldot').classList.toggle('on',n>0);
-  setStatus(n>0?`Live · ${new Date().toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit'})}`:'Ingen data',n>0);
-  refreshTimer=setTimeout(()=>loadCity(city),60000);
+  refreshTimer = setTimeout(()=>loadCity(city), 60000);
 }
-
 function parseBatt(b){
   if(b.current_range_meters!=null) return Math.min(100,Math.round(b.current_range_meters/200));
   if(b.vehicle_type_capacity_remaining!=null) return b.vehicle_type_capacity_remaining;
   if(b.battery_level!=null) return b.battery_level;
   return null;
 }
-
-function loadDemoData(){
-  const c=CENTERS[city],mk=(prov,n)=>Array.from({length:n},(_,i)=>({
-    id:`${prov}-${i}`,provider:prov,
-    lat:c[0]+(Math.random()-.5)*.04,lng:c[1]+(Math.random()-.5)*.07,
-    battery:Math.floor(Math.random()*85)+10,disabled:Math.random()<.07,
-    name:`${P[prov].label} #${1000+i}`,
+function loadDemo(){
+  const c=CEN[city];
+  const mk=(pv,n)=>Array.from({length:n},(_,i)=>({
+    id:`${pv}-${i}`, provider:pv,
+    lat:c[0]+(Math.random()-.5)*.04, lng:c[1]+(Math.random()-.5)*.07,
+    battery:Math.floor(Math.random()*85)+10, disabled:Math.random()<.07,
+    name:`${P[pv].label} #${1000+i}`,
   }));
   scooters=[...mk('voi',18),...mk('bolt',14),...mk('ryde',9),...mk('dott',7)];
   renderList(); renderMarkers(); renderStrip();
-  setStatus(`Demo · ${new Date().toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit'})}`,true);
 }
 
-// ═══ FILTERS / SORT ═══
-function setSort(mode,btn){ sortMode=mode; document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); renderList(); }
+// ── FILTERS ──
 function buildFilters(){
-  const bar=document.getElementById('fbar');
+  const bar = document.getElementById('fbar');
   Object.entries(P).forEach(([key,p])=>{
-    const btn=document.createElement('button'); btn.className='fb';
-    btn.style.cssText=`color:${p.color};border-color:${p.color}44;background:${p.color}10`;
-    btn.innerHTML=`<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span>${p.label}`;
-    btn.onclick=()=>{hidden.has(key)?hidden.delete(key):hidden.add(key);btn.classList.toggle('off');renderList();renderMarkers();renderStrip();};
-    bar.appendChild(btn);
+    const d = document.createElement('div'); d.className='fb';
+    d.style.cssText=`color:${p.color};border-color:${p.color}44;background:${p.color}10`;
+    d.innerHTML=`<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span>${p.label}`;
+    d.onclick=()=>{ hidden.has(key)?hidden.delete(key):hidden.add(key); d.classList.toggle('off'); renderList(); renderMarkers(); renderStrip(); };
+    bar.appendChild(d);
   });
 }
 
-// ═══ RENDER LIST ═══
+// ── RENDER LIST ──
 function renderList(){
-  const list=document.getElementById('sbl');
-  const q=document.getElementById('srch').value.toLowerCase();
-  let vis=scooters.filter(s=>!s.disabled&&!hidden.has(s.provider)&&(q===''||s.name.toLowerCase().includes(q)||s.provider.includes(q)));
-  if(sortMode==='dist') vis.sort((a,b)=>distTo(a)-distTo(b));
-  else if(sortMode==='batt') vis.sort((a,b)=>(b.battery??-1)-(a.battery??-1));
-  else vis.sort((a,b)=>a.provider.localeCompare(b.provider));
-  document.getElementById('ctxt').textContent=`${vis.length} tilgjengelig`;
-  if(!vis.length){ list.innerHTML=`<div class="empty"><div class="empty-ico">🛴</div>${scooters.length===0?'Ingen data mottatt.':'Ingen matcher søket.'}</div>`; return; }
-  list.innerHTML=vis.slice(0,80).map(s=>{
-    const p=P[s.provider],batt=s.battery,bc=batt==null?'#555':batt>50?p.color:batt>20?'#ffb800':'#ff4d4d',dist=distTo(s),ds=fmtDist(dist);
+  const list = document.getElementById('sbl');
+  let vis = scooters.filter(s=>!s.disabled && !hidden.has(s.provider))
+    .sort((a,b)=>distTo(a)-distTo(b));
+  document.getElementById('sheetCount').textContent =
+    vis.length ? `${vis.length} sparkesykler nær deg` : 'Ingen tilgjengelig';
+  if(!vis.length){
+    list.innerHTML=`<div class="empty">🛴<br>${scooters.length===0?'Ingen data.<br>Sjekk tilkobling':'Ingen sparkesykler funnet.'}</div>`;
+    return;
+  }
+  list.innerHTML = vis.slice(0,60).map(s=>{
+    const p=P[s.provider], bt=s.battery;
+    const bc = bt==null?'#555':bt>50?p.color:bt>20?'#ffb800':'#ff4d4d';
+    const ds = fmtD(distTo(s));
     return `<div class="card" onclick="flyTo('${s.id}')">
       <div class="cbar" style="background:${p.color}"></div>
       <div class="cico" style="background:${p.color}15;color:${p.color}">${p.label[0]}</div>
       <div class="cbody">
-        <div class="cname">${s.name}</div>
-        <div class="cmeta">
-          ${batt!=null?`<div class="cbatt" style="color:${bc}"><div class="bb"><div class="bf" style="width:${batt}%;background:${bc}"></div></div>${batt}%</div>`:''}
-          ${ds?`<div class="cdist">📍 ${ds}</div>`:''}
+        <div class="cn">${s.name}</div>
+        <div class="cm">
+          ${bt!=null?`<div class="cb" style="color:${bc}"><div class="bb"><div class="bf" style="width:${bt}%;background:${bc}"></div></div>${bt}%</div>`:''}
+          ${ds?`<span style="color:var(--accent);font-weight:600">📍 ${ds}</span>`:''}
           <span style="color:${p.color};font-weight:600">${p.label}</span>
         </div>
       </div>
-      <button class="lei" style="background:${p.color};color:${p.tc}" onclick="event.stopPropagation();openApp('${s.id}')">Lei</button>
+      <button class="lei" style="background:${p.color};color:${p.tc}"
+        onclick="event.stopPropagation();openApp('${s.id}')">Lei</button>
     </div>`;
-  }).join('')+(vis.length>80?`<div class="empty">+${vis.length-80} til…</div>`:'');
+  }).join('') + (vis.length>60?`<div class="empty">+${vis.length-60} til…</div>`:'');
 }
-function showShimmers(){ document.getElementById('sbl').innerHTML=Array(5).fill('<div class="shim"></div>').join(''); }
+function showShimmers(){ document.getElementById('sbl').innerHTML=Array(4).fill('<div class="shim"></div>').join(''); }
 
-// ═══ MARKERS ═══
+// ── MAP MARKERS ──
 function renderMarkers(){
   markers.forEach(m=>leafMap.removeLayer(m)); markers=[];
   scooters.filter(s=>!s.disabled&&!hidden.has(s.provider)).forEach(s=>{
-    const p=P[s.provider],batt=s.battery,col=batt==null?p.color:batt>50?p.color:batt>20?'#ffb800':'#ff4d4d',tc=batt!=null&&batt<=20?'#fff':p.tc;
-    const icon=L.divIcon({className:'',html:`<div class="pin"><div class="pbub" style="background:${col};color:${tc}">${p.label}${batt!=null?' '+batt+'%':''}</div><div class="ptail" style="border-top-color:${col}"></div></div>`,iconSize:[0,0],iconAnchor:[30,28]});
-    const dist=distTo(s);
-    const m=L.marker([s.lat,s.lng],{icon}).addTo(leafMap);
-    m.bindPopup(`<div style="min-width:200px">
-      <div class="pop-header"><div class="pop-ico" style="background:${p.color}15;color:${p.color}">${p.label[0]}</div>
-        <div><div class="pop-title">${s.name}</div><div class="pop-sub" style="color:${p.color}">${p.label}</div></div></div>
-      <div class="pop-stats">
-        <div class="pop-stat"><div class="pop-stat-n" style="color:${batt!=null?(batt>50?p.color:batt>20?'#ffb800':'#ff4d4d'):'var(--dim)'}">${batt!=null?batt+'%':'–'}</div><div class="pop-stat-l">Batteri</div></div>
-        <div class="pop-stat"><div class="pop-stat-n" style="color:var(--accent)">${dist!==Infinity?fmtDist(dist):'–'}</div><div class="pop-stat-l">Fra deg</div></div>
+    const p=P[s.provider], bt=s.battery;
+    const col=bt==null?p.color:bt>50?p.color:bt>20?'#ffb800':'#ff4d4d';
+    const tc=bt!=null&&bt<=20?'#fff':p.tc;
+    const icon=L.divIcon({className:'',
+      html:`<div class="pin"><div class="pbub" style="background:${col};color:${tc}">${p.label}${bt!=null?' '+bt+'%':''}</div><div class="ptail" style="border-top-color:${col}"></div></div>`,
+      iconSize:[0,0], iconAnchor:[30,28]});
+    const d=distTo(s), m=L.marker([s.lat,s.lng],{icon}).addTo(leafMap);
+    m.bindPopup(`<div style="min-width:185px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:38px;height:38px;border-radius:11px;background:${p.color}15;color:${p.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0">${p.label[0]}</div>
+        <div><div style="font-weight:700;font-size:15px">${s.name}</div><div style="font-size:12px;color:${p.color};font-weight:600">${p.label}</div></div>
       </div>
-      <button class="pop-btn" style="background:${p.color};color:${p.tc}" onclick="openApp('${s.id}')">Åpne i ${p.label}-appen →</button>
+      <div class="pst">
+        <div class="psc"><div class="psn" style="color:${bt!=null?(bt>50?p.color:bt>20?'#ffb800':'#ff4d4d'):'var(--dim)'}">${bt!=null?bt+'%':'–'}</div><div class="psl">Batteri</div></div>
+        <div class="psc"><div class="psn" style="color:var(--accent)">${d!==Infinity?fmtD(d):'–'}</div><div class="psl">Fra deg</div></div>
+      </div>
+      <button class="pbtn" style="background:${p.color};color:${p.tc}" onclick="openApp('${s.id}')">Åpne i ${p.label}-appen →</button>
     </div>`);
     markers.push(m);
   });
 }
 
-// ═══ STRIP ═══
+// ── STRIP ──
 function renderStrip(){
-  const counts={};
-  scooters.filter(s=>!s.disabled&&!hidden.has(s.provider)).forEach(s=>{counts[s.provider]=(counts[s.provider]||0)+1;});
-  const total=Object.values(counts).reduce((a,b)=>a+b,0);
-  document.getElementById('strip').innerHTML=
-    Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<div class="chip"><span class="cdot" style="background:${P[k].color}"></span><b>${P[k].label}</b> ${n}</div>`).join('')+
-    (total?`<div class="chip" style="border-color:rgba(0,229,160,.2)"><b>${total}</b> totalt</div>`:'');
+  const c={};
+  scooters.filter(s=>!s.disabled&&!hidden.has(s.provider)).forEach(s=>{ c[s.provider]=(c[s.provider]||0)+1; });
+  const t=Object.values(c).reduce((a,b)=>a+b,0);
+  document.getElementById('strip').innerHTML =
+    Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,n])=>
+      `<div class="chip"><span class="cdot" style="background:${P[k].color}"></span><b>${P[k].label}</b> ${n}</div>`
+    ).join('') + (t?`<div class="chip" style="border-color:rgba(0,229,160,.2)"><b>${t}</b></div>`:'');
 }
 
-// ═══ NAV / HELPERS ═══
-function changeCity(c){ city=c; clearTimeout(refreshTimer); leafMap.flyTo(CENTERS[c]||CENTERS.trondheim,14,{duration:.9}); scooters=[]; markers.forEach(m=>leafMap.removeLayer(m)); markers=[]; renderList(); renderStrip(); if(demoMode) loadDemoData(); else loadCity(c); }
-function toggleSheet(){ sheetOpen=!sheetOpen; document.getElementById('sb').classList.toggle('collapsed',!sheetOpen); }
-function setStatus(t,live){ document.getElementById('stxt').textContent=t; document.getElementById('ldot').classList.toggle('on',live); }
-function flyTo(id){ const s=scooters.find(x=>x.id===id); if(!s) return; leafMap.flyTo([s.lat,s.lng],18,{duration:.7}); if(window.innerWidth<=700){sheetOpen=false;document.getElementById('sb').classList.add('collapsed');} }
-function openApp(id){ const s=scooters.find(x=>x.id===id); if(s) window.open(DEEP[s.provider]||'#','_blank'); }
-</script>
+// ── SHEET ──
+function toggleSheet(){ sheetOpen=!sheetOpen; document.getElementById('sheet').classList.toggle('peek',!sheetOpen); }
 
-
-<!-- PRICE & INFO TABS -->
-<style>
-:root { --tab-h: 60px; }
-.app { bottom: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px)) !important; }
-.tab-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 3000;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: rgba(8,12,24,.97); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border); display: flex;
-}
-.tab-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  height: var(--tab-h); cursor: pointer; gap: 3px; color: var(--dim);
-  transition: color .2s; -webkit-user-select: none; padding-bottom: 2px;
-}
-.tab-item:active { transform: scale(.88); }
-.tab-item.on { color: var(--accent); }
-.tab-icon { font-size: 22px; line-height: 1; }
-.tab-label { font-size: 10px; font-weight: 600; }
-#priserPage { display: none; position: fixed; top: 56px; left: 0; right: 0;
-  bottom: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 14px; background: var(--bg); z-index: 100; }
-#priserPage.on { display: block; }
-.ph { background: linear-gradient(135deg, var(--surf2), var(--surf)); border: 1px solid var(--border); border-radius: 18px; padding: 18px; margin-bottom: 16px; }
-.ph h1 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
-.ph p { font-size: 13px; color: var(--dim); }
-.calc-box { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 16px; }
-.calc-box h2 { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
-.calc-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); margin-bottom: 6px; }
-.calc-row b { color: var(--text); }
-.calc-res-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
-.calc-cell { background: var(--surf2); border-radius: 10px; padding: 9px 5px; text-align: center; }
-.calc-cell.winner { border: 1px solid rgba(0,229,160,.3); background: rgba(0,229,160,.06); }
-.calc-cell .num { font-weight: 700; font-size: 15px; }
-.calc-cell.winner .num { color: var(--accent); }
-.calc-cell .lbl { font-size: 9px; color: var(--dim); margin-top: 2px; }
-.psec { font-weight: 700; font-size: 15px; margin: 16px 0 12px; display: flex; align-items: center; gap: 8px; }
-.psec::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.pcard { background: var(--surf); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
-.pcard-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.plogo { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0; }
-.pname { font-weight: 700; font-size: 17px; }
-.ptagline { font-size: 12px; color: var(--dim); margin-top: 2px; }
-.pbadge { margin-left: auto; padding: 4px 10px; border-radius: 50px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-.pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-.pgrid-cell { background: var(--surf2); border-radius: 12px; padding: 11px; text-align: center; }
-.pgrid-cell .pnum { font-weight: 800; font-size: 19px; }
-.pgrid-cell .plbl { font-size: 10px; color: var(--dim); margin-top: 2px; }
-.prow { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-.prow:last-child { border: none; padding-bottom: 0; }
-.prow-name { font-weight: 500; }
-.prow-sub { font-size: 12px; color: var(--dim); margin-top: 1px; }
-.prow-price { font-weight: 700; color: var(--accent); }
-.tip { background: rgba(0,229,160,.06); border: 1px solid rgba(0,229,160,.15); border-radius: 14px; padding: 13px; margin-bottom: 10px; font-size: 13px; line-height: 1.6; }
-.tip strong { color: var(--accent); }
-</style>
-
-<div class="tab-bar">
-  <div class="tab-item on" id="tab-kart" onclick="switchTab('kart')">
-    <div class="tab-icon">🗺</div><div class="tab-label">Kart</div>
-  </div>
-  <div class="tab-item" id="tab-pris" onclick="switchTab('pris')">
-    <div class="tab-icon">💸</div><div class="tab-label">Priser</div>
-  </div>
-  <div class="tab-item" id="tab-qr" onclick="openQR()">
-    <div class="tab-icon">⬛</div><div class="tab-label">Skann QR</div>
-  </div>
-</div>
-
-<div id="priserPage">
-  <div class="ph"><h1>💸 Prisguide</h1><p>Finn billigste leverandør for din kjørestil</p></div>
-
-  <div class="calc-box">
-    <h2>🧮 Hva koster turen din?</h2>
-    <div class="calc-row"><span>Minutter på sykkelen</span><b id="calcMinLabel">10 min</b></div>
-    <input type="range" id="calcMin2" min="1" max="60" value="10" style="width:100%;accent-color:var(--accent)" oninput="updateCalc2()">
-    <div class="calc-res-grid" id="calcGrid"></div>
-  </div>
-
-  <div class="psec">Per leverandør</div>
-
-  <div class="pcard">
-    <div class="pcard-head">
-      <div class="plogo" style="background:rgba(233,30,140,.12);color:var(--voi)">V</div>
-      <div><div class="pname" style="color:var(--voi)">Voi</div><div class="ptagline">Størst utvalg · Bred dekning</div></div>
-      <div class="pbadge" style="background:rgba(233,30,140,.1);color:var(--voi)">Populær</div>
-    </div>
-    <div class="pgrid">
-      <div class="pgrid-cell"><div class="pnum" style="color:var(--voi)">10 kr</div><div class="plbl">Oppstart</div></div>
-      <div class="pgrid-cell"><div class="pnum" style="color:var(--voi)">3 kr/min</div><div class="plbl">Kjøring</div></div>
-    </div>
-    <div class="prow"><div><div class="prow-name">Dagspass</div><div class="prow-sub">100 min inkludert</div></div><div class="prow-price">69 kr</div></div>
-    <div class="prow"><div><div class="prow-name">Fri oppstart 1 mnd</div><div class="prow-sub">Ubegrensede starter</div></div><div class="prow-price">29 kr</div></div>
-    <div class="prow"><div><div class="prow-name">Månedspass</div><div class="prow-sub">300 min</div></div><div class="prow-price">299 kr</div></div>
-    <div class="prow"><div><div class="prow-name">Månedspass+</div><div class="prow-sub">750 min</div></div><div class="prow-price">699 kr</div></div>
-  </div>
-
-  <div class="pcard">
-    <div class="pcard-head">
-      <div class="plogo" style="background:rgba(52,209,107,.12);color:var(--bolt)">B</div>
-      <div><div class="pname" style="color:var(--bolt)">Bolt</div><div class="ptagline">Billigst per tur · Ingen oppstart</div></div>
-      <div class="pbadge" style="background:rgba(52,209,107,.1);color:var(--bolt)">Billigst</div>
-    </div>
-    <div class="pgrid">
-      <div class="pgrid-cell"><div class="pnum" style="color:var(--bolt)">0–5 kr</div><div class="plbl">Oppstart</div></div>
-      <div class="pgrid-cell"><div class="pnum" style="color:var(--bolt)">2,5 kr/min</div><div class="plbl">Kjøring</div></div>
-    </div>
-    <div class="prow"><div><div class="prow-name">Dagspass</div><div class="prow-sub">80 min</div></div><div class="prow-price">69 kr</div></div>
-    <div class="prow"><div><div class="prow-name">14-dagers</div><div class="prow-sub">150 min</div></div><div class="prow-price">199 kr</div></div>
-    <div class="prow"><div><div class="prow-name">Månedspass</div><div class="prow-sub">300 min = 1,30 kr/min!</div></div><div class="prow-price">389 kr</div></div>
-    <div class="prow"><div><div class="prow-name">Månedspass+</div><div class="prow-sub">800 min</div></div><div class="prow-price">699 kr</div></div>
-  </div>
-
-  <div class="pcard">
-    <div class="pcard-head">
-      <div class="plogo" style="background:rgba(255,87,34,.12);color:var(--ryde)">R</div>
-      <div><div class="pname" style="color:var(--ryde)">Ryde</div><div class="ptagline">Norsk · Robust · God demping</div></div>
-      <div class="pbadge" style="background:rgba(255,87,34,.1);color:var(--ryde)">Norsk</div>
-    </div>
-    <div class="pgrid">
-      <div class="pgrid-cell"><div class="pnum" style="color:var(--ryde)">5 kr</div><div class="plbl">Oppstart</div></div>
-      <div class="pgrid-cell"><div class="pnum" style="color:var(--ryde)">2,5 kr/min</div><div class="plbl">Kjøring</div></div>
-    </div>
-    <div class="prow"><div><div class="prow-name">Dagspass</div><div class="prow-sub">75 min</div></div><div class="prow-price">79 kr</div></div>
-    <div class="prow"><div><div class="prow-name">14-dagers</div><div class="prow-sub">200 min – beste verdi!</div></div><div class="prow-price">249 kr</div></div>
-    <div class="prow"><div><div class="prow-name">Fri oppstart 1 mnd</div><div class="prow-sub">Ubegrensede starter</div></div><div class="prow-price">29 kr</div></div>
-    <div class="prow"><div><div class="prow-name">Månedspass</div><div class="prow-sub">300 min</div></div><div class="prow-price">399 kr</div></div>
-    <div class="prow"><div><div class="prow-name">Månedspass+</div><div class="prow-sub">750 min</div></div><div class="prow-price">699 kr</div></div>
-  </div>
-
-  <div class="pcard">
-    <div class="pcard-head">
-      <div class="plogo" style="background:rgba(108,92,231,.12);color:var(--dott)">D</div>
-      <div><div class="pname" style="color:var(--dott)">Dott</div><div class="ptagline">Trondheim · Europeisk kvalitet</div></div>
-    </div>
-    <div class="pgrid">
-      <div class="pgrid-cell"><div class="pnum" style="color:var(--dott)">10 kr</div><div class="plbl">Oppstart</div></div>
-      <div class="pgrid-cell"><div class="pnum" style="color:var(--dott)">3 kr/min</div><div class="plbl">Kjøring</div></div>
-    </div>
-  </div>
-
-  <div class="psec">💡 Tips</div>
-  <div class="tip"><strong>Kjører du daglig?</strong> Bolt månedspass: 389 kr / 300 min = bare 1,30 kr/min!</div>
-  <div class="tip"><strong>Én rask tur?</strong> Bolt er billigst – ingen oppstart. 10 min koster bare 25 kr.</div>
-  <div class="tip"><strong>Dårlig vei?</strong> Ryde har størst hjul og best demping for norske gater.</div>
-  <div class="tip"><strong>Dagsturist?</strong> Voi dagspass: 100 min / 69 kr – best verdi for utforsking.</div>
-  <div style="height:20px"></div>
-</div>
-
-<script>
-function switchTab(t){
-  document.getElementById('mapPage').classList.toggle('on', t==='kart');
-  document.getElementById('priserPage').classList.toggle('on', t==='pris');
-  document.querySelectorAll('.tab-item').forEach(el=>el.classList.remove('on'));
-  if(t!=='qr') document.getElementById('tab-'+t).classList.add('on');
-  if(t==='kart') setTimeout(()=>leafMap.invalidateSize(),60);
-}
-function updateCalc2(){
-  const min=+document.getElementById('calcMin2').value;
-  document.getElementById('calcMinLabel').textContent=min+' min';
-  const PRICES2=[
-    {label:'Voi',color:'var(--voi)',price:10+3*min},
-    {label:'Bolt',color:'var(--bolt)',price:0+2.5*min},
-    {label:'Ryde',color:'var(--ryde)',price:5+2.5*min},
-    {label:'Dott',color:'var(--dott)',price:10+3*min},
-  ];
-  const mn2=Math.min(...PRICES2.map(x=>x.price));
-  document.getElementById('calcGrid').innerHTML=PRICES2.map(x=>`
-    <div class="calc-cell ${x.price===mn2?'winner':''}">
-      <div class="num" style="color:${x.price===mn2?'var(--accent)':x.color}">${x.price.toFixed(0)} kr</div>
+// ── CALCULATOR ──
+function updateCalc(){
+  const min=+document.getElementById('cmin').value;
+  document.getElementById('cml').textContent=min+' min';
+  const pr=Object.entries(P).map(([k,p])=>({label:p.label,color:p.color,price:p.start+p.pm*min}));
+  const mn=Math.min(...pr.map(x=>x.price));
+  document.getElementById('cgrid').innerHTML = pr.map(x=>`
+    <div class="calccel ${x.price===mn?'win':''}">
+      <div class="num" style="color:${x.price===mn?'var(--accent)':x.color}">${x.price.toFixed(0)} kr</div>
       <div class="lbl">${x.label}</div>
     </div>`).join('');
 }
-updateCalc2();
-</script>
 
-<script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+// ── CITY ──
+function changeCity(c){
+  city=c; clearTimeout(refreshTimer);
+  leafMap.flyTo(CEN[c]||CEN.trondheim,14,{duration:.9});
+  scooters=[]; markers.forEach(m=>leafMap.removeLayer(m)); markers=[];
+  renderList(); renderStrip();
+  demo ? loadDemo() : loadCity(c);
 }
+
+// ── QR ──
+async function openQR(){
+  document.getElementById('qrModal').classList.add('open');
+  document.getElementById('qrRes').classList.remove('show');
+  qFound=false; setQrSt('Starter kamera…','');
+  try {
+    qStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
+    const v=document.getElementById('qrVid'); v.srcObject=qStream; v.play();
+    v.addEventListener('loadedmetadata',()=>{ setQrSt('Rett mot QR-koden',''); scanLoop(); },{once:true});
+  } catch(e) { setQrSt('Kameratilgang avslått.\niPhone: Innstillinger → Safari → Kamera → Tillat','err'); }
+}
+function scanLoop(){
+  if(qFound) return;
+  const v=document.getElementById('qrVid'), c=document.getElementById('qrCvs');
+  if(v.readyState===v.HAVE_ENOUGH_DATA){
+    c.width=v.videoWidth; c.height=v.videoHeight;
+    const ctx=c.getContext('2d'); ctx.drawImage(v,0,0,c.width,c.height);
+    const code=jsQR(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height,{inversionAttempts:'dontInvert'});
+    if(code){ handleQR(code.data); return; }
+  }
+  qFrame=requestAnimationFrame(scanLoop);
+}
+function handleQR(raw){
+  qFound=true; cancelAnimationFrame(qFrame); stopCam();
+  setQrSt('✅ QR-kode funnet!','found');
+  const m=QRPAT.find(x=>x.re.test(raw));
+  const pv=m?P[m.p]:{label:'Ukjent',color:'#00e5a0',tc:'#040a14'};
+  document.getElementById('qrRi').textContent=pv.label[0];
+  document.getElementById('qrRi').style.cssText=`background:${pv.color}18;color:${pv.color}`;
+  document.getElementById('qrRn').textContent=pv.label+' sparkesykkel';
+  const id=raw.match(/\/([A-Z0-9\-]{4,12})\/?(\?|$)/i);
+  document.getElementById('qrRid').textContent=id?'ID: '+id[1]:raw.slice(0,40)+'…';
+  const mb=document.getElementById('qrMb');
+  mb.textContent=(m?'Åpne i '+pv.label:'Åpne link')+' →';
+  mb.style.cssText=`background:${pv.color};color:${pv.tc}`;
+  mb.onclick=()=>window.open(raw.startsWith('http')?raw:'https://'+raw,'_blank');
+  const sb=document.getElementById('qrSb2');
+  if(m){ sb.textContent='Åpne '+pv.label+'.com'; sb.onclick=()=>window.open(m.url,'_blank'); }
+  else { sb.textContent='Kopier link'; sb.onclick=()=>{ navigator.clipboard?.writeText(raw); sb.textContent='✅ Kopiert!'; }; }
+  document.getElementById('qrRes').classList.add('show');
+}
+function resetQR(){ qFound=false; document.getElementById('qrRes').classList.remove('show'); setQrSt('Starter kamera igjen…',''); openQR(); }
+function closeQR(){ stopCam(); document.getElementById('qrModal').classList.remove('open'); document.getElementById('qrRes').classList.remove('show'); qFound=false; }
+function stopCam(){ cancelAnimationFrame(qFrame); if(qStream){ qStream.getTracks().forEach(t=>t.stop()); qStream=null; } }
+function setQrSt(msg,cls){ const e=document.getElementById('qrSt'); e.textContent=msg; e.className='qrst '+cls; }
+
+// ── HELPERS ──
+function flyTo(id){ const s=scooters.find(x=>x.id===id); if(!s) return; leafMap.flyTo([s.lat,s.lng],18,{duration:.7}); sheetOpen=false; document.getElementById('sheet').classList.add('peek'); }
+function openApp(id){ const s=scooters.find(x=>x.id===id); if(s) window.open(DEEP[s.provider]||'#','_blank'); }
+
+// ── PWA ──
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
 </html>
