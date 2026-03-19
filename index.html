@@ -13,6 +13,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <style>
 :root {
   --bg:#080c18; --bg2:#0d1224; --surf:#121930; --surf2:#1c2440;
@@ -24,6 +27,93 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+
+
+/* ── CLUSTER MARKERS ── */
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+  background:rgba(0,229,160,.18)!important;
+}
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+  background:rgba(0,229,160,.5)!important;
+  color:#040a14!important; font-weight:800!important; font-size:13px!important;
+}
+.marker-cluster { border-radius:50%!important; }
+
+/* ── ONBOARDING ── */
+#onboarding {
+  position:fixed; inset:0; z-index:9000;
+  background:var(--bg);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+#onboarding.hide { display:none; }
+.ob-slides { display:flex; transition:transform .4s cubic-bezier(.32,.72,0,1); height:100%; }
+.ob-slide {
+  min-width:100%; height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:40px 32px calc(120px + env(safe-area-inset-bottom));
+  text-align:center; gap:20px;
+}
+.ob-ico { font-size:80px; line-height:1; animation:obpulse 2s ease infinite; }
+@keyframes obpulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+.ob-title { font-size:28px; font-weight:800; letter-spacing:-.5px; line-height:1.2; }
+.ob-title em { color:var(--accent); font-style:normal; }
+.ob-desc { font-size:15px; color:var(--dim); line-height:1.7; max-width:280px; }
+.ob-dots { display:flex; gap:8px; }
+.ob-dot { width:8px; height:8px; border-radius:50%; background:var(--surf2); transition:all .3s; }
+.ob-dot.on { background:var(--accent); width:24px; border-radius:50px; }
+.ob-bottom {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:20px 24px calc(20px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:10px; align-items:center;
+  background:linear-gradient(to top, var(--bg) 70%, transparent);
+}
+.ob-next {
+  width:100%; max-width:320px; padding:16px;
+  border-radius:16px; border:none; background:var(--accent);
+  color:#040a14; font-size:16px; font-weight:800;
+  cursor:pointer; transition:opacity .2s;
+}
+.ob-next:active { opacity:.8; transform:scale(.97); }
+.ob-skip { font-size:13px; color:var(--dim); cursor:pointer; padding:4px; }
+
+/* ── ACTIVE RIDE BANNER ── */
+#activeRideBanner {
+  position:fixed;
+  top:calc(52px + env(safe-area-inset-top));
+  left:0; right:0; z-index:800;
+  background:linear-gradient(135deg,rgba(0,20,10,.97),rgba(0,30,20,.97));
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(0,229,160,.3);
+  padding:12px 16px;
+  display:none; align-items:center; gap:12px;
+  transform:translateY(-100%);
+  transition:transform .4s cubic-bezier(.32,.72,0,1);
+}
+#activeRideBanner.show {
+  display:flex; transform:translateY(0);
+}
+/* push map page down when banner is visible */
+#pgMap.with-banner { top:calc(104px + env(safe-area-inset-top))!important; }
+
+.ar-pulse { width:10px; height:10px; border-radius:50%; background:var(--accent);
+  position:relative; flex-shrink:0; }
+.ar-pulse::after { content:''; position:absolute; inset:-4px; border-radius:50%;
+  border:2px solid var(--accent); animation:arpulse 1.5s ease infinite; }
+@keyframes fadeout { to { opacity:0; transform:scale(.96); } }
+@keyframes arpulse { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.6);opacity:0} }
+.ar-info { flex:1 }
+.ar-timer { font-size:22px; font-weight:800; color:var(--accent); font-variant-numeric:tabular-nums; }
+.ar-meta { font-size:11px; color:var(--dim); margin-top:1px; }
+.ar-cost { text-align:right; }
+.ar-cost-n { font-size:18px; font-weight:800; }
+.ar-cost-l { font-size:10px; color:var(--dim); }
+.ar-stop {
+  padding:8px 14px; border-radius:10px; border:none;
+  background:var(--red); color:white; font-size:12px; font-weight:700;
+  cursor:pointer; flex-shrink:0;
+}
+.ar-stop:active { opacity:.8; transform:scale(.95); }
 
 /* ── NAV ── */
 #topNav{
@@ -471,6 +561,61 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
 </head>
 <body>
 
+
+<!-- ── ONBOARDING ── -->
+<div id="onboarding">
+  <div class="ob-slides" id="obSlides">
+    <!-- Slide 1 -->
+    <div class="ob-slide">
+      <div class="ob-ico">🛴</div>
+      <div class="ob-title">Velkommen til<br><em>SparkNorge</em></div>
+      <div class="ob-desc">Finn ledige sparkesykler fra Voi, Bolt, Ryde og Dott – live på kartet</div>
+    </div>
+    <!-- Slide 2 -->
+    <div class="ob-slide">
+      <div class="ob-ico">📍</div>
+      <div class="ob-title">Finn sykkelen<br><em>nærmest deg</em></div>
+      <div class="ob-desc">Trykk GPS-knappen og se alle tilgjengelige sykler sortert etter avstand</div>
+    </div>
+    <!-- Slide 3 -->
+    <div class="ob-slide">
+      <div class="ob-ico">📷</div>
+      <div class="ob-title">Skann<br><em>QR-koden</em></div>
+      <div class="ob-desc">Rett kameraet mot QR-koden på sykkelen – appen åpner riktig leverandør automatisk</div>
+    </div>
+    <!-- Slide 4 -->
+    <div class="ob-slide">
+      <div class="ob-ico">💸</div>
+      <div class="ob-title">Sammenlign<br><em>priser</em></div>
+      <div class="ob-desc">Se hva turen koster hos alle leverandører og velg den billigste</div>
+    </div>
+  </div>
+  <div class="ob-bottom">
+    <div class="ob-dots">
+      <div class="ob-dot on" id="dot0"></div>
+      <div class="ob-dot" id="dot1"></div>
+      <div class="ob-dot" id="dot2"></div>
+      <div class="ob-dot" id="dot3"></div>
+    </div>
+    <button class="ob-next" id="obNext" onclick="obNextSlide()">Neste →</button>
+    <div class="ob-skip" onclick="finishOnboarding()">Hopp over</div>
+  </div>
+</div>
+
+<!-- ── ACTIVE RIDE BANNER ── -->
+<div id="activeRideBanner">
+  <div class="ar-pulse"></div>
+  <div class="ar-info">
+    <div class="ar-timer" id="arTimer">00:00</div>
+    <div class="ar-meta" id="arMeta">Aktiv tur · starter…</div>
+  </div>
+  <div class="ar-cost">
+    <div class="ar-cost-n" id="arCost">0 kr</div>
+    <div class="ar-cost-l">Kostnad</div>
+  </div>
+  <button class="ar-stop" onclick="stopRide()">⬛ Stopp</button>
+</div>
+
 <!-- SETUP -->
 <div id="setup">
   <div class="sbox">
@@ -899,7 +1044,7 @@ window.addEventListener('DOMContentLoaded', () => {
   leafMap = L.map('map',{zoomControl:false}).setView(CEN.trondheim,14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(leafMap);
   L.control.zoom({position:'bottomright'}).addTo(leafMap);
-  buildFilters(); updateCalc(); renderProfile(); buildAvatarPicker();
+  buildFilters(); updateCalc(); renderProfile(); buildAvatarPicker(); initOnboarding();
   const saved=localStorage.getItem('sn_proxy');
   if(saved){ proxy=saved; document.getElementById('proxyUrl').value=saved; document.getElementById('puSett').value=saved; document.getElementById('proxyStatus').textContent=saved.replace('https://',''); closeSetup(); locateMe(true); loadCity('trondheim'); }
 });
@@ -1175,14 +1320,28 @@ function renderList(){
 function showShimmers(){document.getElementById('sbl').innerHTML=Array(4).fill('<div class="shim"></div>').join('');}
 
 function renderMarkers(){
-  markers.forEach(m=>leafMap.removeLayer(m));markers=[];
+  if(window._clusterGroup) leafMap.removeLayer(window._clusterGroup);
+  markers=[];
+  window._clusterGroup = L.markerClusterGroup({
+    maxClusterRadius:60,
+    iconCreateFunction: function(cluster){
+      const n=cluster.getChildCount();
+      return L.divIcon({
+        html:`<div style="width:38px;height:38px;border-radius:50%;background:rgba(0,229,160,.85);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#040a14;box-shadow:0 2px 12px rgba(0,229,160,.4)">${n}</div>`,
+        className:'',iconSize:[38,38],iconAnchor:[19,19]
+      });
+    },
+    spiderfyOnMaxZoom:true, showCoverageOnHover:false, zoomToBoundsOnClick:true
+  });
   scooters.filter(s=>!s.disabled&&!hidden.has(s.provider)).forEach(s=>{
     const p=P[s.provider],bt=s.battery,col=bt==null?p.color:bt>50?p.color:bt>20?'#ffb800':'#ff4d4d',tc=bt!=null&&bt<=20?'#fff':p.tc;
     const icon=L.divIcon({className:'',html:`<div class="pin"><div class="pbub" style="background:${col};color:${tc}">${p.label}${bt!=null?' '+bt+'%':''}</div><div class="ptail" style="border-top-color:${col}"></div></div>`,iconSize:[0,0],iconAnchor:[30,28]});
-    const d=distTo(s),m=L.marker([s.lat,s.lng],{icon}).addTo(leafMap);
+    const d=distTo(s),m=L.marker([s.lat,s.lng],{icon});
     m.bindPopup(`<div style="min-width:185px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:11px;background:${p.color}15;color:${p.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0">${p.label[0]}</div><div><div style="font-weight:700;font-size:15px">${s.name}</div><div style="font-size:12px;color:${p.color};font-weight:600">${p.label}</div></div></div><div class="pst"><div class="psc"><div class="psn" style="color:${bt!=null?(bt>50?p.color:bt>20?'#ffb800':'#ff4d4d'):'var(--dim)'}">${bt!=null?bt+'%':'–'}</div><div class="psl">Batteri</div></div><div class="psc"><div class="psn" style="color:var(--accent)">${d!==Infinity?fmtD(d):'–'}</div><div class="psl">Fra deg</div></div></div><button class="pbtn" style="background:${p.color};color:${p.tc}" onclick="openApp('${s.id}')">Åpne i ${p.label}-appen →</button></div>`);
     markers.push(m);
+    window._clusterGroup.addLayer(m);
   });
+  leafMap.addLayer(window._clusterGroup);
 }
 function renderStrip(){const c={};scooters.filter(s=>!s.disabled&&!hidden.has(s.provider)).forEach(s=>{c[s.provider]=(c[s.provider]||0)+1;});const t=Object.values(c).reduce((a,b)=>a+b,0);document.getElementById('strip').innerHTML=Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<div class="chip"><span class="cdot" style="background:${P[k].color}"></span><b>${P[k].label}</b> ${n}</div>`).join('')+(t?`<div class="chip" style="border-color:rgba(0,229,160,.2)"><b>${t}</b></div>`:'');}
 
@@ -1202,13 +1361,98 @@ function stopCam(){cancelAnimationFrame(qFrame);if(qStream){qStream.getTracks().
 function setQrSt(msg,cls){const e=document.getElementById('qrSt');e.textContent=msg;e.className='qrst '+cls;}
 
 function flyTo(id){const s=scooters.find(x=>x.id===id);if(!s)return;leafMap.flyTo([s.lat,s.lng],18,{duration:.7});sheetOpen=false;document.getElementById('sheet').classList.add('peek');}
-function openApp(id){const s=scooters.find(x=>x.id===id);if(s)window.open(DEEP[s.provider]||'#','_blank');}
+function openApp(id){
+  const s=scooters.find(x=>x.id===id); if(!s) return;
+  const p=P[s.provider];
+  if(rideTimer){ showToast('⚠️ Du har allerede en aktiv tur!'); return; }
+  if(confirm(`Lei ${s.name}?\n\nOppstart: ${p.start} kr\nPris: ${p.pm} kr/min\n\nTrykk OK for å starte turen`)){
+    startRide(s);
+  } else {
+    window.open(DEEP[s.provider]||'#','_blank');
+  }
+}
 
 // Card number formatting
 document.addEventListener('input',e=>{
   if(e.target.id==='cardNum'){let v=e.target.value.replace(/\D/g,'').slice(0,16);e.target.value=v.match(/.{1,4}/g)?.join(' ')||v;}
   if(e.target.id==='cardExp'){let v=e.target.value.replace(/\D/g,'').slice(0,4);if(v.length>=2)v=v.slice(0,2)+'/'+v.slice(2);e.target.value=v;}
 });
+
+
+// ── ONBOARDING ──
+let obCurrent = 0;
+const OB_SLIDES = 4;
+
+function initOnboarding() {
+  const seen = localStorage.getItem('sn_onboarded');
+  if (!seen) {
+    document.getElementById('onboarding').classList.remove('hide');
+  } else {
+    document.getElementById('onboarding').classList.add('hide');
+  }
+}
+
+function obNextSlide() {
+  if (obCurrent >= OB_SLIDES - 1) { finishOnboarding(); return; }
+  obCurrent++;
+  document.getElementById('obSlides').style.transform = `translateX(-${obCurrent * 100}%)`;
+  for (let i = 0; i < OB_SLIDES; i++) {
+    document.getElementById('dot' + i)?.classList.toggle('on', i === obCurrent);
+  }
+  if (obCurrent === OB_SLIDES - 1) {
+    document.getElementById('obNext').textContent = '🚀 Start appen';
+  }
+}
+
+function finishOnboarding() {
+  localStorage.setItem('sn_onboarded', '1');
+  document.getElementById('onboarding').style.animation = 'fadeout .4s ease forwards';
+  setTimeout(() => document.getElementById('onboarding').classList.add('hide'), 400);
+}
+
+// ── ACTIVE RIDE ──
+let rideTimer = null, rideSeconds = 0, rideProvider = null, rideStart = 0, ridePriceStart = 0, ridePricePerMin = 0;
+
+function startRide(scooter) {
+  const p = P[scooter.provider];
+  rideProvider = scooter.provider;
+  rideSeconds = 0;
+  ridePriceStart = p.start;
+  ridePricePerMin = p.pm;
+  rideStart = Date.now();
+  document.getElementById('arMeta').textContent = `${scooter.name} · ${p.label}`;
+  document.getElementById('activeRideBanner').classList.add('show');
+  document.getElementById('pgMap').classList.add('with-banner');
+  if (rideTimer) clearInterval(rideTimer);
+  rideTimer = setInterval(() => {
+    rideSeconds++;
+    const m = Math.floor(rideSeconds / 60), s = rideSeconds % 60;
+    document.getElementById('arTimer').textContent =
+      String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    const cost = ridePriceStart + ridePricePerMin * (rideSeconds / 60);
+    document.getElementById('arCost').textContent = cost.toFixed(0) + ' kr';
+  }, 1000);
+  // haptic
+  if (navigator.vibrate) navigator.vibrate(50);
+}
+
+function stopRide() {
+  if (!rideTimer) return;
+  clearInterval(rideTimer); rideTimer = null;
+  const cost = ridePriceStart + ridePricePerMin * (rideSeconds / 60);
+  const mins = Math.ceil(rideSeconds / 60);
+  // Add to profile
+  profile.trips++;
+  profile.km += parseFloat((Math.random() * 2 + 0.5).toFixed(1));
+  profile.wallet = Math.max(0, profile.wallet - cost);
+  profile.xp += 10 + mins;
+  saveProfileData();
+  document.getElementById('activeRideBanner').classList.remove('show');
+  document.getElementById('pgMap').classList.remove('with-banner');
+  rideProvider = null;
+  showToast(`✅ Tur avsluttet · ${mins} min · ${cost.toFixed(0)} kr`);
+  if (navigator.vibrate) navigator.vibrate([50,50,100]);
+}
 
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
